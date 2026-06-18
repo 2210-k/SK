@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>База данных штрихкодов</title>
+
+    <!-- Подключаем библиотеку для сканирования -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
+    </script>
+
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            min-height: 100vh;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .app {
+            max-width: 720px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 20px 60px rgba(0, 20, 40, 0.10);
+            padding: 24px 20px 32px;
+            transition: all 0.2s;
+        }
+
+        /* ===== HEADER ===== */
+        .app-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #eef2f6;
+        }
+
+        .app-header .icon {
+            font-size: 32px;
+            line-height: 1;
+        }
+
+        .app-header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: #0f172a;
+        }
+
+        .app-header .badge {
+            margin-left: auto;
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 100px;
+        }
+
+        /* ===== TABS ===== */
+        .tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 24px;
+            background: #f1f5f9;
+            border-radius: 16px;
+            padding: 4px;
+        }
+
+        .tab-btn {
+            padding: 10px 6px;
+            border: none;
+            background: transparent;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .tab-btn .tab-icon {
+            font-size: 18px;
+        }
+
+        .tab-btn:hover {
+            color: #1e293b;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .tab-btn.active {
+            background: #ffffff;
+            color: #1e40af;
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.12);
+        }
+
+        /* ===== TAB CONTENT ===== */
+        .tab-content {
+            display: none;
+            animation: fadeUp 0.25s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== CARDS / BLOCKS ===== */
+        .card {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #eef2f6;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ===== SCANNER ===== */
+        #scanner-container {
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            background: #0f172a;
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+            min-height: 200px;
+        }
+
+        #scanner-container video {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover;
+        }
+
+        #scanner-container .scanner-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #94a3b8;
+            font-size: 14px;
+            gap: 8px;
+        }
+
+        .scanner-placeholder .big-icon {
+            font-size: 48px;
+            opacity: 0.6;
+        }
+
+        .scanner-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+
+        .scanner-controls .btn {
+            flex: 1;
+            min-width: 100px;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary {
+            background: #1e40af;
+            color: #ffffff;
+        }
+        .btn-primary:hover {
+            background: #1e3a8a;
+        }
+
+        .btn-success {
+            background: #16a34a;
+            color: #ffffff;
+        }
+        .btn-success:hover {
+            background: #15803d;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: #ffffff;
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #cbd5e1;
+            color: #475569;
+        }
+        .btn-outline:hover {
+            border-color: #94a3b8;
+            background: #f1f5f9;
+        }
+
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 13px;
+            border-radius: 8px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* ===== FORM ===== */
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 5px;
+        }
+
+        .form-group .hint {
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 400;
+            margin-left: 6px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 15px;
+            background: #ffffff;
+            transition: border 0.2s;
+            color: #0f172a;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #1e40af;
+            box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.10);
+        }
+
+        .form-control::placeholder {
+            color: #94a3b8;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: end;
+        }
+
+        /* ===== TABLE / LIST ===== */
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .list-header .count {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .list-search {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+            min-width: 160px;
+        }
+
+        .list-search .form-control {
+            padding: 8px 12px;
+            font-size: 14px;
+            border-radius: 8px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid #eef2f6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead {
+            background: #f1f5f9;
+        }
+
+        th {
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+            word-break: break-word;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #fafcff;
+        }
+
+        .barcode-cell {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+
+        .desc-cell {
+            color: #334155;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-state .big-icon {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 15px;
+        }
+
+        /* ===== RESULT (lookup) ===== */
+        .result-box {
+            padding: 20px;
+            border-radius: 14px;
+            margin-top: 16px;
+            text-align: center;
+            border: 2px dashed #e2e8f0;
+            background: #fafcff;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .result-box.found {
+            border-color: #16a34a;
+            background: #f0fdf4;
+        }
+
+        .result-box.not-found {
+            border-color: #dc2626;
+            background: #fef2f2;
+        }
+
+        .result-box .result-barcode {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+
+        .result-box .result-desc {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .result-box .result-label {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .result-box .not-found-text {
+            color: #dc2626;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        /* ===== TOAST ===== */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .toast {
+            padding: 14px 20px;
+            border-radius: 14px;
+            font-weight: 500;
+            font-size: 14px;
+            color: #ffffff;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+            animation: slideUp 0.35s ease;
+            text-align: center;
+        }
+
+        .toast.success {
+            background: #16a34a;
+        }
+        .toast.error {
+            background: #dc2626;
+        }
+        .toast.info {
+            background: #1e40af;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.96);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 500px) {
+            .app {
+                padding: 16px 14px 24px;
+                border-radius: 20px;
+            }
+
+            .app-header h1 {
+                font-size: 18px;
+            }
+
+            .tab-btn {
+                font-size: 12px;
+                padding: 8px 4px;
+            }
+            .tab-btn .tab-icon {
+                font-size: 16px;
+            }
+
+            .btn {
+                font-size: 13px;
+                padding: 8px 14px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .scanner-controls .btn {
+                min-width: 60px;
+            }
+
+            .list-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .list-search {
+                flex-wrap: wrap;
+            }
+
+            .list-search .form-control {
+                flex: 1;
+                min-width: 120px;
+            }
+
+            .card {
+                padding: 14px;
+            }
+
+            th,
+            td {
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+
+            .result-box .result-desc {
+                font-size: 17px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .tabs {
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 4px;
+                padding: 3px;
+            }
+            .tab-btn {
+                font-size: 11px;
+                padding: 6px 2px;
+            }
+            .tab-btn .tab-icon {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app" id="app">
+
+        <!-- HEADER -->
+        <header class="app-header">
+            <span class="icon">📦</span>
+            <h1>База штрихкодов</h1>
+            <span class="badge" id="totalBadge">0</span>
+        </header>
+
+        <!-- TABS -->
+        <div class="tabs" role="tablist">
+            <button class="tab-btn active" data-tab="tab-add" role="tab">
+                <span class="tab-icon">➕</span> Добавить
+            </button>
+            <button class="tab-btn" data-tab="tab-list" role="tab">
+                <span class="tab-icon">📋</span> Список
+            </button>
+            <button class="tab-btn" data-tab="tab-find" role="tab">
+                <span class="tab-icon">🔍</span> Найти
+            </button>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- TAB 1 — ДОБАВИТЬ -->
+        <!-- ============================================================ -->
+        <section class="tab-content active" id="tab-add" role="tabpanel">
+
+            <div class="card">
+                <div class="card-title">📷 Сканировать штрихкод</div>
+
+                <div id="scanner-container">
+                    <div class="scanner-placeholder" id="scannerPlaceholder">
+                        <span class="big-icon">📸</span>
+                        <span>Нажмите «Запустить камеру»</span>
+                        <span style="font-size:12px; opacity:0.6;">для сканирования штрихкода</span>
+                    </div>
+                </div>
+
+                <div class="scanner-controls">
+                    <button class="btn btn-primary" id="btnStartScan">▶ Запустить камеру</button>
+                    <button class="btn btn-outline" id="btnStopScan">⏹ Остановить</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">✏️ Информация о товаре</div>
+
+                <div class="form-group">
+                    <label>Штрихкод <span class="hint">(заполняется автоматически при сканировании)</span></label>
+                    <input type="text" class="form-control" id="inputBarcode" placeholder="Например: 4601234567890" />
+                </div>
+
+                <div class="form-group">
+                    <label>Описание <span class="hint">(название товара, артикул и т.п.)</span></label>
+                    <input type="text" class="form-control" id="inputDescription" placeholder="Введите описание товара" />
+                </div>
+
+                <button class="btn btn-success" id="btnSaveBarcode" style="width:100%;">
+                    💾 Сохранить в базу
+                </button>
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn btn-outline btn-sm" id="btnClearAddForm">🗑 Очистить форму</button>
+            </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- TAB 2 — СПИСОК -->
+        <!-- ============================================================ -->
+        <section class="tab-content" id="tab-list" role="tabpanel">
+
+            <div class="list-header">
+                <span class="count" id="listCount">Всего: 0</span>
+                <div class="list-search">
+                    <input type="text" class="form-control" id="searchInput" placeholder="🔎 Поиск по ШК или описанию…" />
+                    <button class="btn btn-outline btn-sm" id="btnClearSearch">✕</button>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:40%;">Штрихкод</th>
+                            <th style="width:45%;">Описание</th>
+                            <th style="width:15%;text-align:right;">Действие</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listBody">
+                        <!-- динамически -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top:16px; display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+                <button class="btn btn-danger btn-sm" id="btnClearAll">🗑 Очистить всю базу</button>
+                <button class="btn btn-outline btn-sm" id="btnExportJSON">📤 Экспорт JSON</button>
+                <button class="btn btn-outline btn-sm" id="btnImportJSON">📥 Импорт JSON</button>
+                <input type="file" id="fileInput" accept=".json" style="display:none;" />
+            </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- TAB 3 — НАЙТИ (ПРОБИТЬ) -->
+        <!-- ============================================================ -->
+        <section class="tab-content" id="tab-find" role="tabpanel">
+
+            <div class="card">
+                <div class="card-title">📷 Сканируйте штрихкод для поиска</div>
+
+                <div id="scanner-container-find">
+                    <div class="scanner-placeholder" id="scannerPlaceholderFind">
+                        <span class="big-icon">🔎</span>
+                        <span>Нажмите «Запустить камеру»</span>
+                        <span style="font-size:12px; opacity:0.6;">для пробивки штрихкода</span>
+                    </div>
+                </div>
+
+                <div class="scanner-controls">
+                    <button class="btn btn-primary" id="btnStartScanFind">▶ Запустить камеру</button>
+                    <button class="btn btn-outline" id="btnStopScanFind">⏹ Остановить</button>
+                </div>
+            </div>
+
+            <div class="result-box" id="resultBox">
+                <span style="color:#94a3b8;">Ожидание сканирования…</span>
+            </div>
+
+            <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+                <input type="text" class="form-control" id="manualFindInput" placeholder="Введите ШК вручную" style="flex:1; min-width:140px;" />
+                <button class="btn btn-primary" id="btnManualFind">🔍 Найти</button>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- TOAST контейнер -->
+    <div class="toast-container" id="toastContainer"></div>
+
+
+    <!-- ============================================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================================ -->
+    <script>
+        (function() {
+            'use strict';
+
+            // -------- DATA LAYER (localStorage) --------
+            const STORAGE_KEY = 'barcode_db_data';
+
+            function loadDB() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    if (raw) {
+                        const data = JSON.parse(raw);
+                        if (Array.isArray(data)) return data;
+                    }
+                } catch (_) { /* ignore */ }
+                return [];
+            }
+
+            function saveDB(data) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            }
+
+            function generateId() {
+                return Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+            }
+
+            // -------- STATE --------
+            let db = loadDB();
+            let currentScanCode = ''; // последний отсканированный код
+
+            // Для сканеров
+            let scannerAdd = null;
+            let scannerFind = null;
+            let isScanningAdd = false;
+            let isScanningFind = false;
+
+            // -------- DOM REFS --------
+            const $ = (sel) => document.querySelector(sel);
+            const $$ = (sel) => document.querySelectorAll(sel);
+
+            // Tabs
+            const tabBtns = $$('.tab-btn');
+            const tabContents = {
+                add: $('#tab-add'),
+                list: $('#tab-list'),
+                find: $('#tab-find')
+            };
+
+            // Add tab
+            const scannerContainer = $('#scanner-container');
+            const placeholderAdd = $('#scannerPlaceholder');
+            const inputBarcode = $('#inputBarcode');
+            const inputDescription = $('#inputDescription');
+            const btnStartScan = $('#btnStartScan');
+            const btnStopScan = $('#btnStopScan');
+            const btnSave = $('#btnSaveBarcode');
+            const btnClearForm = $('#btnClearAddForm');
+
+            // List tab
+            const listBody = $('#listBody');
+            const listCount = $('#listCount');
+            const searchInput = $('#searchInput');
+            const btnClearSearch = $('#btnClearSearch');
+            const btnClearAll = $('#btnClearAll');
+            const btnExport = $('#btnExportJSON');
+            const btnImport = $('#btnImportJSON');
+            const fileInput = $('#fileInput');
+            const totalBadge = $('#totalBadge');
+
+            // Find tab
+            const scannerContainerFind = $('#scanner-container-find');
+            const placeholderFind = $('#scannerPlaceholderFind');
+            const resultBox = $('#resultBox');
+            const btnStartScanFind = $('#btnStartScanFind');
+            const btnStopScanFind = $('#btnStopScanFind');
+            const manualFindInput = $('#manualFindInput');
+            const btnManualFind = $('#btnManualFind');
+
+            // Toast
+            const toastContainer = $('#toastContainer');
+
+            // -------- TOAST --------
+            let toastTimer = null;
+
+            function showToast(message, type = 'info', duration = 3000) {
+                if (toastTimer) {
+                    clearTimeout(toastTimer);
+                    toastTimer = null;
+                }
+                toastContainer.innerHTML = `<div class="toast ${type}">${message}</div>`;
+                toastTimer = setTimeout(() => {
+                    toastContainer.innerHTML = '';
+                    toastTimer = null;
+                }, duration);
+            }
+
+            // -------- RENDER LIST --------
+            function renderList(filter = '') {
+                const q = filter.trim().toLowerCase();
+                let items = db;
+                if (q) {
+                    items = items.filter(item =>
+                        item.barcode.toLowerCase().includes(q) ||
+                        (item.description && item.description.toLowerCase().includes(q))
+                    );
+                }
+                // Сортируем по дате добавления (новые сверху)
+                items = [...items].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+                listCount.textContent = `Всего: ${items.length} из ${db.length}`;
+                totalBadge.textContent = db.length;
+
+                if (items.length === 0) {
+                    listBody.innerHTML = `
+                            <tr><td colspan="3">
+                                <div class="empty-state">
+                                    <span class="big-icon">📭</span>
+                                    <p>${db.length === 0 ? 'База пуста. Добавьте штрихкоды!' : 'Ничего не найдено'}</p>
+                                </div>
+                            </td></tr>
+                        `;
+                    return;
+                }
+
+                let html = '';
+                items.forEach(item => {
+                    const desc = item.description || '—';
+                    html += `
+                            <tr>
+                                <td class="barcode-cell">${escapeHtml(item.barcode)}</td>
+                                <td class="desc-cell">${escapeHtml(desc)}</td>
+                                <td style="text-align:right;">
+                                    <button class="btn btn-danger btn-sm" data-id="${item.id}" data-action="delete-item">✕</button>
+                                </td>
+                            </tr>
+                        `;
+                });
+                listBody.innerHTML = html;
+
+                // Делегирование на кнопки удаления
+                listBody.querySelectorAll('[data-action="delete-item"]').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        const id = this.dataset.id;
+                        if (confirm('Удалить этот штрихкод из базы?')) {
+                            db = db.filter(item => item.id !== id);
+                            saveDB(db);
+                            renderList(searchInput.value);
+                            showToast('Запись удалена', 'info');
+                        }
+                    });
+                });
+            }
+
+            function escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            // -------- ОБНОВЛЕНИЕ БЭДЖА --------
+            function updateBadge() {
+                totalBadge.textContent = db.length;
+            }
+
+            // -------- СОХРАНЕНИЕ НОВОГО ШК --------
+            function saveBarcode(barcode, description) {
+                barcode = barcode.trim();
+                description = description.trim();
+
+                if (!barcode) {
+                    showToast('Введите или отсканируйте штрихкод!', 'error');
+                    return false;
+                }
+
+                // Проверяем, есть ли уже такой ШК
+                const existing = db.find(item => item.barcode === barcode);
+                if (existing) {
+                    // Обновляем описание
+                    if (description) {
+                        existing.description = description;
+                        saveDB(db);
+                        renderList(searchInput.value);
+                        updateBadge();
+                        showToast(`Описание для ${barcode} обновлено!`, 'success');
+                        return true;
+                    } else {
+                        showToast(`Штрихкод ${barcode} уже есть в базе!`, 'error');
+                        return false;
+                    }
+                }
+
+                const newItem = {
+                    id: generateId(),
+                    barcode: barcode,
+                    description: description || '',
+                    createdAt: Date.now()
+                };
+
+                db.push(newItem);
+                saveDB(db);
+                renderList(searchInput.value);
+                updateBadge();
+                showToast(`Штрихкод ${barcode} добавлен!`, 'success');
+                return true;
+            }
+
+            // -------- ОЧИСТКА ФОРМЫ ДОБАВЛЕНИЯ --------
+            function clearAddForm() {
+                inputBarcode.value = '';
+                inputDescription.value = '';
+                currentScanCode = '';
+                resultBox.className = 'result-box';
+                resultBox.innerHTML = `<span style="color:#94a3b8;">Ожидание сканирования…</span>`;
+            }
+
+            // -------- ПОИСК ПО ШК (пробивка) --------
+            function lookupBarcode(barcode) {
+                barcode = barcode.trim();
+                if (!barcode) {
+                    resultBox.className = 'result-box';
+                    resultBox.innerHTML = `<span style="color:#94a3b8;">Введите или отсканируйте штрихкод</span>`;
+                    return;
+                }
+
+                const item = db.find(d => d.barcode === barcode);
+                if (item) {
+                    const desc = item.description || '—';
+                    resultBox.className = 'result-box found';
+                    resultBox.innerHTML = `
+                            <div class="result-label">✅ Найдено</div>
+                            <div class="result-barcode">${escapeHtml(barcode)}</div>
+                            <div class="result-desc">${escapeHtml(desc)}</div>
+                        `;
+                    showToast(`Найден: ${desc}`, 'success', 2000);
+                } else {
+                    resultBox.className = 'result-box not-found';
+                    resultBox.innerHTML = `
+                            <div class="not-found-text">❌ Не найден</div>
+                            <div class="result-barcode">${escapeHtml(barcode)}</div>
+                            <div style="color:#64748b; font-size:14px; margin-top:4px;">Этого штрихкода нет в базе</div>
+                        `;
+                    showToast(`Штрихкод ${barcode} не найден`, 'error', 2000);
+                }
+            }
+
+            // -------- СКАНЕР (общая логика) --------
+            function initScanner(containerId, placeholderId, onSuccess, onError) {
+                const container = document.getElementById(containerId);
+                const placeholder = document.getElementById(placeholderId);
+
+                // Удаляем всё содержимое контейнера, кроме плейсхолдера
+                // Но оставляем только плейсхолдер (он внутри)
+                // При сканировании html5-qrcode вставляет video внутрь контейнера
+
+                // Очищаем контейнер от предыдущих видео
+                const existingVideo = container.querySelector('video');
+                if (existingVideo) existingVideo.remove();
+
+                const existingCanvas = container.querySelector('canvas');
+                if (existingCanvas) existingCanvas.remove();
+
+                // Показываем плейсхолдер
+                placeholder.style.display = 'flex';
+
+                return new Html5Qrcode(containerId);
+            }
+
+            function startScannerInstance(scanner, containerId, placeholderId, onSuccess, onError) {
+                const container = document.getElementById(containerId);
+                const placeholder = document.getElementById(placeholderId);
+
+                if (!scanner) {
+                    showToast('Ошибка инициализации сканера', 'error');
+                    return;
+                }
+
+                const config = {
+                    fps: 20,
+                    qrbox: { width: 280, height: 200 },
+                    aspectRatio: 4 / 3,
+                    formatsToSupport: [
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.UPC_A,
+                        Html5QrcodeSupportedFormats.UPC_E,
+                        Html5QrcodeSupportedFormats.CODE_128,
+                        Html5QrcodeSupportedFormats.CODE_39,
+                        Html5QrcodeSupportedFormats.CODE_93,
+                        Html5QrcodeSupportedFormats.ITF,
+                        Html5QrcodeSupportedFormats.CODABAR,
+                        Html5QrcodeSupportedFormats.QR_CODE,
+                        Html5QrcodeSupportedFormats.DATA_MATRIX,
+                        Html5QrcodeSupportedFormats.AZTEC,
+                    ]
+                };
+
+                scanner.start({ facingMode: 'environment' },
+                    config,
+                    (decodedText, decodedResult) => {
+                        // Успешное сканирование
+                        // Останавливаем сканер, чтобы не сканировал повторно
+                        try {
+                            scanner.stop();
+                        } catch (_) {}
+                        placeholder.style.display = 'flex';
+                        onSuccess(decodedText);
+                    },
+                    (error) => {
+                        // Ошибка сканирования (игнорируем)
+                        // console.debug('Scan error:', error);
+                    }
+                ).then(() => {
+                    // Скрываем плейсхолдер
+                    placeholder.style.display = 'none';
+                    showToast('Камера запущена, наведите на штрихкод', 'info', 1500);
+                }).catch(err => {
+                    showToast('Ошибка доступа к камере: ' + err.message, 'error');
+                    placeholder.style.display = 'flex';
+                    onError && onError(err);
+                });
+            }
+
+            function stopScannerInstance(scanner, placeholderId) {
+                const placeholder = document.getElementById(placeholderId);
+                if (scanner) {
+                    try {
+                        scanner.stop();
+                    } catch (_) {}
+                    try {
+                        scanner.clear();
+                    } catch (_) {}
+                }
+                placeholder.style.display = 'flex';
+                // Удаляем видео
+                const container = scanner ? scanner._element : null;
+                if (container) {
+                    const video = container.querySelector('video');
+                    if (video) video.remove();
+                    const canvas = container.querySelector('canvas');
+                    if (canvas) canvas.remove();
+                }
+            }
+
+            // -------- ИНИЦИАЛИЗАЦИЯ СКАНЕРОВ --------
+            function initScanners() {
+                // Сканер для вкладки "Добавить"
+                const scAdd = new Html5Qrcode('scanner-container');
+                scannerAdd = scAdd;
+
+                // Сканер для вкладки "Найти"
+                const scFind = new Html5Qrcode('scanner-container-find');
+                scannerFind = scFind;
+
+                // Обработчики для кнопок "Добавить"
+                btnStartScan.addEventListener('click', function() {
+                    if (isScanningAdd) {
+                        showToast('Сканер уже запущен', 'info');
+                        return;
+                    }
+                    startScannerInstance(scannerAdd, 'scanner-container', 'scannerPlaceholder',
+                        (code) => {
+                            // Успешно отсканировали
+                            inputBarcode.value = code;
+                            currentScanCode = code;
+                            showToast(`Отсканирован: ${code}`, 'success', 1500);
+                            isScanningAdd = false;
+                            // Автоматически фокус на описание
+                            inputDescription.focus();
+                        },
+                        (err) => {
+                            isScanningAdd = false;
+                        }
+                    );
+                    isScanningAdd = true;
+                });
+
+                btnStopScan.addEventListener('click', function() {
+                    stopScannerInstance(scannerAdd, 'scannerPlaceholder');
+                    isScanningAdd = false;
+                    showToast('Сканер остановлен', 'info');
+                });
+
+                // Обработчики для кнопок "Найти"
+                btnStartScanFind.addEventListener('click', function() {
+                    if (isScanningFind) {
+                        showToast('Сканер уже запущен', 'info');
+                        return;
+                    }
+                    startScannerInstance(scannerFind, 'scanner-container-find', 'scannerPlaceholderFind',
+                        (code) => {
+                            // Успешно отсканировали
+                            lookupBarcode(code);
+                            isScanningFind = false;
+                        },
+                        (err) => {
+                            isScanningFind = false;
+                        }
+                    );
+                    isScanningFind = true;
+                });
+
+                btnStopScanFind.addEventListener('click', function() {
+                    stopScannerInstance(scannerFind, 'scannerPlaceholderFind');
+                    isScanningFind = false;
+                    showToast('Сканер остановлен', 'info');
+                });
+            }
+
+            // -------- ТАБЫ --------
+            function switchTab(tabId) {
+                // Скрываем все
+                Object.values(tabContents).forEach(el => el.classList.remove('active'));
+                // Показываем нужный
+                const target = document.getElementById(tabId);
+                if (target) target.classList.add('active');
+
+                // Обновляем кнопки
+                tabBtns.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.tab === tabId);
+                });
+
+                // Если переключились на список — обновляем
+                if (tabId === 'tab-list') {
+                    renderList(searchInput.value);
+                }
+
+                // Если переключились на "Найти" — сбрасываем результат
+                if (tabId === 'tab-find') {
+                    resultBox.className = 'result-box';
+                    resultBox.innerHTML = `<span style="color:#94a3b8;">Ожидание сканирования…</span>`;
+                }
+            }
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const tabId = this.dataset.tab;
+                    switchTab(tabId);
+                });
+            });
+
+            // -------- СОБЫТИЯ --------
+
+            // Сохранение
+            btnSave.addEventListener('click', function() {
+                const barcode = inputBarcode.value.trim();
+                const desc = inputDescription.value.trim();
+                if (!barcode) {
+                    showToast('Сначала отсканируйте или введите штрихкод!', 'error');
+                    return;
+                }
+                const ok = saveBarcode(barcode, desc);
+                if (ok) {
+                    // Очищаем только поле описания, ШК оставляем для быстрого добавления следующего
+                    // но если пользователь хочет новый ШК, он сканирует снова
+                    // Можно оставить как есть, или очистить всё — сделаем очистку формы
+                    // Но лучше оставить ШК и очистить описание для быстрого ввода
+                    inputDescription.value = '';
+                    // Фокус на описание
+                    inputDescription.focus();
+                    // Обновляем список если открыт
+                    if (document.getElementById('tab-list').classList.contains('active')) {
+                        renderList(searchInput.value);
+                    }
+                }
+            });
+
+            // Очистка формы
+            btnClearForm.addEventListener('click', clearAddForm);
+
+            // Поиск в списке
+            searchInput.addEventListener('input', function() {
+                renderList(this.value);
+            });
+
+            btnClearSearch.addEventListener('click', function() {
+                searchInput.value = '';
+                renderList('');
+                searchInput.focus();
+            });
+
+            // Очистка всей базы
+            btnClearAll.addEventListener('click', function() {
+                if (db.length === 0) {
+                    showToast('База уже пуста', 'info');
+                    return;
+                }
+                if (confirm('ВНИМАНИЕ! Удалить ВСЕ штрихкоды из базы?')) {
+                    if (confirm('Вы уверены? Данные будут потеряны безвозвратно!')) {
+                        db = [];
+                        saveDB(db);
+                        renderList('');
+                        updateBadge();
+                        clearAddForm();
+                        resultBox.className = 'result-box';
+                        resultBox.innerHTML = `<span style="color:#94a3b8;">База очищена</span>`;
+                        showToast('База полностью очищена', 'info');
+                    }
+                }
+            });
+
+            // Экспорт JSON
+            btnExport.addEventListener('click', function() {
+                if (db.length === 0) {
+                    showToast('База пуста, нечего экспортировать', 'error');
+                    return;
+                }
+                const json = JSON.stringify(db, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `barcodes_${new Date().toISOString().slice(0,10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('Экспорт выполнен', 'success');
+            });
+
+            // Импорт JSON
+            btnImport.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', function(e) {
+                const file = this.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (!Array.isArray(data)) {
+                            throw new Error('Неверный формат: ожидается массив');
+                        }
+                        // Проверяем структуру
+                        let valid = true;
+                        data.forEach(item => {
+                            if (!item.barcode) valid = false;
+                        });
+                        if (!valid) {
+                            throw new Error('Некорректные данные: отсутствует поле "barcode"');
+                        }
+                        // Сливаем: добавляем только новые, существующие обновляем
+                        let added = 0,
+                            updated = 0;
+                        data.forEach(item => {
+                            const existing = db.find(d => d.barcode === item.barcode);
+                            if (existing) {
+                                if (item.description && item.description !== existing.description) {
+                                    existing.description = item.description;
+                                    updated++;
+                                }
+                            } else {
+                                db.push({
+                                    id: generateId(),
+                                    barcode: item.barcode,
+                                    description: item.description || '',
+                                    createdAt: Date.now()
+                                });
+                                added++;
+                            }
+                        });
+                        saveDB(db);
+                        renderList(searchInput.value);
+                        updateBadge();
+                        showToast(`Импорт: ${added} добавлено, ${updated} обновлено`, 'success');
+                    } catch (err) {
+                        showToast('Ошибка импорта: ' + err.message, 'error');
+                    }
+                };
+                reader.readAsText(file);
+                this.value = '';
+            });
+
+            // Ручной поиск во вкладке "Найти"
+            btnManualFind.addEventListener('click', function() {
+                const code = manualFindInput.value.trim();
+                if (!code) {
+                    showToast('Введите штрихкод', 'error');
+                    return;
+                }
+                lookupBarcode(code);
+            });
+
+            manualFindInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    btnManualFind.click();
+                }
+            });
+
+            // Также можно нажать Enter в поле описания при добавлении
+            inputDescription.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    btnSave.click();
+                }
+            });
+
+            inputBarcode.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    inputDescription.focus();
+                }
+            });
+
+            // -------- ЗАПУСК --------
+            function init() {
+                // Инициализируем сканеры
+                initScanners();
+
+                // Рендерим список
+                renderList('');
+                updateBadge();
+
+                // Если есть данные, показываем подсказку
+                if (db.length > 0) {
+                    // Можно ничего не делать
+                }
+
+                // При переключении на вкладку "Найти" сбрасываем сканер, если он был запущен
+                // Но это уже обработано в switchTab
+            }
+
+            // Адаптация для мобильных: при потере фокуса на input — скрываем клавиатуру
+            // Ничего дополнительно не нужно
+
+            // Чистка при выгрузке страницы
+            window.addEventListener('beforeunload', function() {
+                try {
+                    if (scannerAdd) scannerAdd.stop();
+                } catch (_) {}
+                try {
+                    if (scannerFind) scannerFind.stop();
+                } catch (_) {}
+            });
+
+            // Запуск
+            init();
+
+            // Обработка ошибок камеры: если пользователь нажал "Запустить" и камера не доступна
+            // Показываем понятное сообщение
+
+            console.log('📦 База данных штрихкодов загружена. Записей:', db.length);
+
+        })();
+    </script>
+
+</body>
+</html>
