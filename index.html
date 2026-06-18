@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>База данных штрихкодов</title>
+    <title>База штрихкодов с анимацией</title>
     <style>
         /* ---------- Reset & Base ---------- */
         * {
@@ -53,6 +53,15 @@
             padding: 2px 12px;
             border-radius: 30px;
             margin-left: auto;
+            transition: transform 0.2s;
+        }
+        .badge-db.pop {
+            animation: popBadge 0.3s ease;
+        }
+        @keyframes popBadge {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); background: #48bb78; }
+            100% { transform: scale(1); }
         }
 
         /* ---------- Tabs ---------- */
@@ -166,6 +175,26 @@
             border-radius: 0 0 4px 0;
         }
 
+        /* Flash overlay */
+        #flashOverlay {
+            position: absolute;
+            inset: 0;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            border-radius: 18px;
+            transition: opacity 0.05s;
+            z-index: 10;
+        }
+        #flashOverlay.flash {
+            opacity: 0.8;
+            transition: opacity 0s;
+        }
+        #flashOverlay.flash-end {
+            opacity: 0;
+            transition: opacity 0.4s ease-out;
+        }
+
         /* ---------- Controls ---------- */
         .controls {
             display: flex;
@@ -271,7 +300,8 @@
             display: flex;
             align-items: center;
             word-break: break-word;
-            transition: 0.3s;
+            transition: background 0.3s, border-color 0.3s, transform 0.15s;
+            position: relative;
         }
         .status.info {
             border-left-color: #2b6cb0;
@@ -301,6 +331,14 @@
             border-radius: 4px;
             font-family: 'Courier New', monospace;
         }
+        .status.pop {
+            animation: statusPop 0.3s ease;
+        }
+        @keyframes statusPop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
 
         /* ---------- Database list ---------- */
         .db-section {
@@ -323,6 +361,7 @@
             border-radius: 30px;
             font-size: 13px;
             color: #4a5568;
+            transition: 0.2s;
         }
         .db-list {
             max-height: 260px;
@@ -343,6 +382,8 @@
             border-bottom: 1px solid #edf2f7;
             gap: 12px;
             transition: 0.15s;
+            opacity: 1;
+            transform: translateY(0);
         }
         .db-item:last-child {
             border-bottom: none;
@@ -392,6 +433,15 @@
         .db-item .actions .del:hover {
             color: #e53e3e;
             background: #fff5f5;
+        }
+
+        /* анимация для нового элемента */
+        .db-item.new-item {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            0% { opacity: 0; transform: translateY(-12px); }
+            100% { opacity: 1; transform: translateY(0); }
         }
 
         /* ---------- Modal ---------- */
@@ -552,6 +602,7 @@
             flex-direction: column;
             gap: 12px;
             border-radius: 18px;
+            z-index: 5;
         }
         .spinner {
             width: 32px;
@@ -598,6 +649,7 @@
         <!-- Camera -->
         <div class="camera-wrapper" id="cameraWrapper">
             <video id="video" autoplay playsinline muted></video>
+            <div id="flashOverlay"></div>
             <div class="scan-overlay" id="scanOverlay">
                 <span class="corner tl"></span>
                 <span class="corner tr"></span>
@@ -664,12 +716,13 @@
         //  STATE
         // ============================================================
         const DB_KEY = 'barcodeDB';
-        let db = {}; // { barcode: description }
-        let mode = 'add'; // 'add' | 'info' | 'lookup'
+        let db = {};
+        let mode = 'add';
         let cameraActive = false;
         let scanInterval = null;
         let lastScanned = null;
         let modalResolve = null;
+        let lastAddedCode = null; // для анимации нового элемента
 
         // DOM refs
         const video = document.getElementById('video');
@@ -680,6 +733,7 @@
         const countLabel = document.getElementById('countLabel');
         const dbBadge = document.getElementById('dbBadge');
         const manualInput = document.getElementById('manualInput');
+        const flashOverlay = document.getElementById('flashOverlay');
 
         const tabAdd = document.getElementById('tabAdd');
         const tabInfo = document.getElementById('tabInfo');
@@ -696,6 +750,29 @@
         const modalTextarea = document.getElementById('modalTextarea');
         const modalCancel = document.getElementById('modalCancel');
         const modalSave = document.getElementById('modalSave');
+
+        // ============================================================
+        //  AUDIO (Web Audio beep)
+        // ============================================================
+        let audioCtx = null;
+
+        function playBeep(type = 'success') {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'sine';
+                osc.frequency.value = type === 'success' ? 880 : 440;
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 0.12);
+            } catch (e) { /* игнорируем ошибки аудио */ }
+        }
 
         // ============================================================
         //  DB HELPERS
@@ -752,13 +829,13 @@
             }
 
             let html = '';
-            // sort by key
             keys.sort((a, b) => a.localeCompare(b));
             for (const code of keys) {
                 const desc = db[code] || '';
                 const descDisplay = desc || '<span class="empty-desc">(нет описания)</span>';
+                const isNew = (code === lastAddedCode);
                 html += `
-                    <div class="db-item" data-code="${escapeHtml(code)}">
+                    <div class="db-item ${isNew ? 'new-item' : ''}" data-code="${escapeHtml(code)}">
                         <span class="code">${escapeHtml(code)}</span>
                         <span class="desc">${descDisplay}</span>
                         <div class="actions">
@@ -769,6 +846,16 @@
                 `;
             }
             dbList.innerHTML = html;
+
+            // Если был добавлен новый элемент, через секунду убираем класс, чтобы анимация не повторялась
+            if (lastAddedCode) {
+                setTimeout(() => {
+                    const items = dbList.querySelectorAll('.db-item.new-item');
+                    items.forEach(el => el.classList.remove('new-item'));
+                }, 400);
+                // Сбрасываем, чтобы при следующем рендере не было ложного срабатывания
+                // но оставляем до следующего добавления
+            }
 
             // event listeners
             dbList.querySelectorAll('.edit').forEach(btn => {
@@ -783,6 +870,7 @@
                     if (confirm(`Удалить штрихкод «${code}»?`)) {
                         deleteBarcode(code);
                         setStatus(`🗑 Удалён: ${code}`, 'warning');
+                        playBeep('error');
                     }
                 });
             });
@@ -804,6 +892,31 @@
             }
             statusEl.innerHTML = html;
             statusEl.className = 'status ' + type;
+            // анимация статуса
+            statusEl.classList.remove('pop');
+            // форсируем reflow
+            void statusEl.offsetWidth;
+            statusEl.classList.add('pop');
+        }
+
+        // ============================================================
+        //  FLASH
+        // ============================================================
+        function triggerFlash(type = 'success') {
+            flashOverlay.classList.remove('flash', 'flash-end');
+            // форсируем reflow
+            void flashOverlay.offsetWidth;
+            flashOverlay.classList.add('flash');
+            // через 100ms начинаем исчезновение
+            setTimeout(() => {
+                flashOverlay.classList.remove('flash');
+                flashOverlay.classList.add('flash-end');
+                setTimeout(() => {
+                    flashOverlay.classList.remove('flash-end');
+                }, 400);
+            }, 100);
+            // звук
+            playBeep(type === 'success' ? 'success' : 'error');
         }
 
         // ============================================================
@@ -822,7 +935,6 @@
                 video.srcObject = stream;
                 await video.play();
 
-                // Check if BarcodeDetector is available
                 if (!('BarcodeDetector' in window)) {
                     setStatus('⚠️ Ваш браузер не поддерживает сканирование камерой. Используйте ручной ввод.', 'error');
                     cameraLoading.style.display = 'none';
@@ -838,12 +950,11 @@
                 btnStop.disabled = false;
                 setStatus('📷 Камера запущена. Наведите на штрихкод...', 'info');
 
-                // Start scanning
-                if (scanInterval) clearInterval(scanInterval);
                 const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e',
                         'itf', 'codabar'
                     ] });
 
+                if (scanInterval) clearInterval(scanInterval);
                 scanInterval = setInterval(async () => {
                     if (!cameraActive || video.readyState < 2) return;
                     try {
@@ -854,16 +965,11 @@
                                 lastScanned = code;
                                 handleBarcode(code);
                             }
-                        } else {
-                            // Reset lastScanned when no barcode is visible, to allow re-scanning same code
-                            // but with a small delay to avoid flicker
                         }
-                    } catch (err) {
-                        // ignore
-                    }
+                    } catch (err) { /* игнор */ }
                 }, 350);
 
-                // Reset lastScanned after a timeout if no barcode is detected
+                // Сброс lastScanned через время
                 let resetTimer = null;
                 const origHandle = handleBarcode;
                 handleBarcode = function(code) {
@@ -917,10 +1023,16 @@
                 case 'add':
                     if (exists) {
                         setStatus(`⚠️ ШК <span class="highlight">${code}</span> уже есть в базе`, 'warning', code);
+                        triggerFlash('error');
                     } else {
                         setBarcodeInfo(code, '');
+                        lastAddedCode = code; // для анимации
                         setStatus(`✅ ШК <span class="highlight">${code}</span> добавлен!`, 'success', code);
-                        // Play subtle feedback
+                        triggerFlash('success');
+                        // обновить бейдж с анимацией
+                        dbBadge.classList.remove('pop');
+                        void dbBadge.offsetWidth;
+                        dbBadge.classList.add('pop');
                     }
                     break;
 
@@ -929,9 +1041,13 @@
                         openEditModal(code, () => {
                             setStatus(`✏️ Описание для <span class="highlight">${code}</span> обновлено`, 'success',
                             code);
+                            triggerFlash('success');
                         });
+                        // Здесь мы не триггерим flash сразу, так как откроется модалка
+                        // но при сохранении будет flash
                     } else {
                         setStatus(`❌ ШК <span class="highlight">${code}</span> не найден в базе`, 'error', code);
+                        triggerFlash('error');
                     }
                     break;
 
@@ -939,8 +1055,10 @@
                     if (exists) {
                         const desc = info || '(нет описания)';
                         setStatus(`🔍 <span class="highlight">${code}</span> → ${desc}`, 'success', code);
+                        triggerFlash('success');
                     } else {
                         setStatus(`❌ ШК <span class="highlight">${code}</span> не найден`, 'error', code);
+                        triggerFlash('error');
                     }
                     break;
 
@@ -962,25 +1080,22 @@
             modalTextarea.focus();
             modalTextarea.select();
 
-            // Store callback
             const saveHandler = () => {
                 const newDesc = modalTextarea.value.trim();
                 setBarcodeInfo(code, newDesc);
                 modalOverlay.classList.remove('open');
                 if (onSaveCallback) onSaveCallback();
                 renderList();
+                // обновим статус (уже в колбэке)
+                // добавим flash
+                triggerFlash('success');
             };
 
-            // Remove old listeners and add new ones
-            const newSave = () => saveHandler();
-            const newCancel = () => {
+            modalSave.onclick = saveHandler;
+            modalCancel.onclick = () => {
                 modalOverlay.classList.remove('open');
             };
 
-            modalSave.onclick = newSave;
-            modalCancel.onclick = newCancel;
-
-            // Enter key in textarea
             modalTextarea.onkeydown = (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -989,7 +1104,6 @@
             };
         }
 
-        // Close modal on overlay click
         modalOverlay.addEventListener('click', (e) => {
             if (e.target === modalOverlay) {
                 modalOverlay.classList.remove('open');
@@ -1006,10 +1120,8 @@
                 return;
             }
             manualInput.value = '';
-            // Simulate barcode detection
             lastScanned = code;
             handleBarcode(code);
-            // Reset lastScanned after a moment to allow re-scan
             setTimeout(() => { lastScanned = null; }, 2000);
         }
 
@@ -1027,7 +1139,6 @@
                 lookup: '🔍 Поиск'
             };
             setStatus(`📌 Режим: ${labels[newMode]}. Наведите камеру на ШК.`, 'info');
-            // Reset last scanned to avoid cross-mode interference
             lastScanned = null;
         }
 
@@ -1037,25 +1148,20 @@
         function init() {
             loadDB();
 
-            // Set default mode
             setMode('add');
 
-            // Tab events
             tabAdd.addEventListener('click', () => setMode('add'));
             tabInfo.addEventListener('click', () => setMode('info'));
             tabLookup.addEventListener('click', () => setMode('lookup'));
 
-            // Camera controls
             btnStart.addEventListener('click', startCamera);
             btnStop.addEventListener('click', stopCamera);
 
-            // Manual input
             btnManual.addEventListener('click', handleManualInput);
             manualInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') handleManualInput();
             });
 
-            // Clear all
             btnClearAll.addEventListener('click', () => {
                 if (countEntries() === 0) {
                     setStatus('📭 База уже пуста', 'info');
@@ -1065,17 +1171,17 @@
                     db = {};
                     saveDB();
                     setStatus('🗑 База очищена', 'warning');
+                    playBeep('error');
                 }
             });
 
-            // Show placeholder
             placeholder.style.display = 'flex';
             cameraLoading.style.display = 'none';
 
-            // Try to auto-start camera
+            // Автозапуск камеры
             startCamera();
 
-            // Update count periodically
+            // Обновление счетчика
             setInterval(() => {
                 const c = countEntries();
                 if (parseInt(countLabel.textContent) !== c) {
@@ -1084,16 +1190,9 @@
             }, 3000);
         }
 
-        // Override handleBarcode to be re-assignable
+        // Переопределяем handleBarcode для возможности замены
         let handleBarcodeFn = handleBarcode;
 
-        // Patch: allow handleBarcode to be replaced by camera scanner
-        const originalHandle = handleBarcode;
-        handleBarcode = function(code) {
-            originalHandle(code);
-        };
-
-        // Start
         document.addEventListener('DOMContentLoaded', init);
     </script>
 
