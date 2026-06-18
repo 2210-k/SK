@@ -2,1392 +2,1099 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>База данных штрихкодов</title>
-
-    <!-- Подключаем библиотеку для сканирования -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
-    </script>
-
     <style>
-        /* ===== RESET & BASE ===== */
+        /* ---------- Reset & Base ---------- */
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
-
         body {
-            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
-            background: #f4f7fc;
-            color: #1e293b;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f4f8;
+            color: #1a202c;
             min-height: 100vh;
-            padding: 16px;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
+            padding: 20px;
         }
-
         .app {
-            max-width: 720px;
+            max-width: 600px;
             width: 100%;
-            background: #ffffff;
+            background: white;
             border-radius: 28px;
-            box-shadow: 0 20px 60px rgba(0, 20, 40, 0.10);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
             padding: 24px 20px 32px;
-            transition: all 0.2s;
+            position: relative;
         }
-
-        /* ===== HEADER ===== */
-        .app-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 2px solid #eef2f6;
-        }
-
-        .app-header .icon {
-            font-size: 32px;
-            line-height: 1;
-        }
-
-        .app-header h1 {
-            font-size: 22px;
+        h1 {
+            font-size: 24px;
             font-weight: 700;
             letter-spacing: -0.3px;
-            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
         }
-
-        .app-header .badge {
-            margin-left: auto;
-            background: #e2e8f0;
-            color: #334155;
-            font-size: 12px;
+        h1 small {
+            font-size: 14px;
+            font-weight: 400;
+            color: #718096;
+            letter-spacing: 0;
+        }
+        .badge-db {
+            background: #2b6cb0;
+            color: white;
+            font-size: 11px;
             font-weight: 600;
-            padding: 4px 12px;
-            border-radius: 100px;
+            padding: 2px 12px;
+            border-radius: 30px;
+            margin-left: auto;
         }
 
-        /* ===== TABS ===== */
+        /* ---------- Tabs ---------- */
         .tabs {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            display: flex;
             gap: 6px;
-            margin-bottom: 24px;
-            background: #f1f5f9;
+            background: #edf2f7;
             border-radius: 16px;
-            padding: 4px;
+            padding: 5px;
+            margin-bottom: 20px;
         }
-
         .tab-btn {
-            padding: 10px 6px;
+            flex: 1;
             border: none;
             background: transparent;
+            padding: 10px 0;
             border-radius: 12px;
-            font-size: 14px;
             font-weight: 600;
-            color: #64748b;
+            font-size: 13px;
+            color: #4a5568;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
         }
-
-        .tab-btn .tab-icon {
-            font-size: 18px;
+        .tab-btn.active {
+            background: white;
+            color: #2b6cb0;
+            box-shadow: 0 2px 8px rgba(43, 108, 176, 0.15);
         }
-
-        .tab-btn:hover {
-            color: #1e293b;
+        .tab-btn:hover:not(.active) {
             background: rgba(255, 255, 255, 0.5);
         }
-
-        .tab-btn.active {
-            background: #ffffff;
-            color: #1e40af;
-            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.12);
+        .tab-btn .icon {
+            font-size: 16px;
         }
 
-        /* ===== TAB CONTENT ===== */
-        .tab-content {
-            display: none;
-            animation: fadeUp 0.25s ease;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        @keyframes fadeUp {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* ===== CARDS / BLOCKS ===== */
-        .card {
-            background: #f8fafc;
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid #eef2f6;
-        }
-
-        .card-title {
-            font-size: 15px;
-            font-weight: 600;
-            color: #0f172a;
-            margin-bottom: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* ===== SCANNER ===== */
-        #scanner-container {
-            width: 100%;
-            aspect-ratio: 4 / 3;
-            background: #0f172a;
-            border-radius: 14px;
+        /* ---------- Camera ---------- */
+        .camera-wrapper {
+            background: #1a202c;
+            border-radius: 18px;
             overflow: hidden;
             position: relative;
-            min-height: 200px;
-        }
-
-        #scanner-container video {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover;
-        }
-
-        #scanner-container .scanner-placeholder {
+            aspect-ratio: 4/3;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
+            margin-bottom: 16px;
+        }
+        .camera-wrapper video {
+            width: 100%;
             height: 100%;
-            color: #94a3b8;
-            font-size: 14px;
-            gap: 8px;
+            object-fit: cover;
+            display: block;
         }
-
-        .scanner-placeholder .big-icon {
+        .camera-wrapper .placeholder {
+            color: #a0aec0;
+            font-size: 15px;
+            text-align: center;
+            padding: 20px;
+        }
+        .camera-wrapper .placeholder .big-icon {
             font-size: 48px;
-            opacity: 0.6;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .scan-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            box-shadow: inset 0 0 0 2px rgba(43, 108, 176, 0.3);
+        }
+        .scan-overlay .corner {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-color: #63b3ed;
+            border-style: solid;
+            border-width: 0;
+        }
+        .scan-overlay .corner.tl {
+            top: 16px;
+            left: 16px;
+            border-top-width: 4px;
+            border-left-width: 4px;
+            border-radius: 4px 0 0 0;
+        }
+        .scan-overlay .corner.tr {
+            top: 16px;
+            right: 16px;
+            border-top-width: 4px;
+            border-right-width: 4px;
+            border-radius: 0 4px 0 0;
+        }
+        .scan-overlay .corner.bl {
+            bottom: 16px;
+            left: 16px;
+            border-bottom-width: 4px;
+            border-left-width: 4px;
+            border-radius: 0 0 0 4px;
+        }
+        .scan-overlay .corner.br {
+            bottom: 16px;
+            right: 16px;
+            border-bottom-width: 4px;
+            border-right-width: 4px;
+            border-radius: 0 0 4px 0;
         }
 
-        .scanner-controls {
+        /* ---------- Controls ---------- */
+        .controls {
             display: flex;
-            gap: 10px;
-            margin-top: 14px;
             flex-wrap: wrap;
-        }
-
-        .scanner-controls .btn {
-            flex: 1;
-            min-width: 100px;
-        }
-
-        /* ===== BUTTONS ===== */
-        .btn {
-            display: inline-flex;
+            gap: 10px;
+            margin-bottom: 16px;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
+        }
+        .controls .btn {
             padding: 10px 20px;
             border: none;
             border-radius: 12px;
-            font-size: 15px;
             font-weight: 600;
+            font-size: 14px;
             cursor: pointer;
-            transition: all 0.2s;
-            background: #e2e8f0;
-            color: #1e293b;
+            transition: 0.2s;
+            background: #edf2f7;
+            color: #2d3748;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1 1 auto;
+            justify-content: center;
         }
-
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+        .controls .btn-primary {
+            background: #2b6cb0;
+            color: white;
         }
-
-        .btn:active {
-            transform: scale(0.97);
+        .controls .btn-primary:hover {
+            background: #1a4f8b;
         }
-
-        .btn-primary {
-            background: #1e40af;
-            color: #ffffff;
+        .controls .btn-success {
+            background: #38a169;
+            color: white;
         }
-        .btn-primary:hover {
-            background: #1e3a8a;
+        .controls .btn-success:hover {
+            background: #2f855a;
         }
-
-        .btn-success {
-            background: #16a34a;
-            color: #ffffff;
+        .controls .btn-danger {
+            background: #e53e3e;
+            color: white;
         }
-        .btn-success:hover {
-            background: #15803d;
+        .controls .btn-danger:hover {
+            background: #c53030;
         }
-
-        .btn-danger {
-            background: #dc2626;
-            color: #ffffff;
-        }
-        .btn-danger:hover {
-            background: #b91c1c;
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 2px solid #cbd5e1;
-            color: #475569;
-        }
-        .btn-outline:hover {
-            border-color: #94a3b8;
-            background: #f1f5f9;
-        }
-
-        .btn-sm {
-            padding: 6px 14px;
-            font-size: 13px;
-            border-radius: 8px;
-        }
-
-        .btn:disabled {
+        .controls .btn:disabled {
             opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
+            pointer-events: none;
+        }
+        .controls .btn-outline {
+            background: transparent;
+            border: 2px solid #e2e8f0;
+        }
+        .controls .btn-outline:hover {
+            background: #f7fafc;
         }
 
-        /* ===== FORM ===== */
-        .form-group {
-            margin-bottom: 14px;
+        /* ---------- Manual input ---------- */
+        .manual-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
         }
-
-        .form-group label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: #334155;
-            margin-bottom: 5px;
-        }
-
-        .form-group .hint {
-            font-size: 12px;
-            color: #94a3b8;
-            font-weight: 400;
-            margin-left: 6px;
-        }
-
-        .form-control {
-            width: 100%;
+        .manual-row input {
+            flex: 1;
             padding: 10px 14px;
             border: 2px solid #e2e8f0;
-            border-radius: 10px;
+            border-radius: 12px;
             font-size: 15px;
-            background: #ffffff;
-            transition: border 0.2s;
-            color: #0f172a;
-        }
-
-        .form-control:focus {
             outline: none;
-            border-color: #1e40af;
-            box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.10);
+            transition: 0.2s;
+            font-family: inherit;
+        }
+        .manual-row input:focus {
+            border-color: #2b6cb0;
+            box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.15);
+        }
+        .manual-row .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            background: #2b6cb0;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .manual-row .btn:hover {
+            background: #1a4f8b;
         }
 
-        .form-control::placeholder {
-            color: #94a3b8;
+        /* ---------- Status ---------- */
+        .status {
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: #f7fafc;
+            border-left: 5px solid #a0aec0;
+            margin-bottom: 16px;
+            font-size: 14px;
+            min-height: 56px;
+            display: flex;
+            align-items: center;
+            word-break: break-word;
+            transition: 0.3s;
+        }
+        .status.info {
+            border-left-color: #2b6cb0;
+            background: #ebf4ff;
+        }
+        .status.success {
+            border-left-color: #38a169;
+            background: #f0fff4;
+        }
+        .status.warning {
+            border-left-color: #d69e2e;
+            background: #fffbeb;
+        }
+        .status.error {
+            border-left-color: #e53e3e;
+            background: #fff5f5;
+        }
+        .status .label {
+            font-weight: 600;
+            margin-right: 6px;
+        }
+        .status .highlight {
+            font-weight: 700;
+            color: #2b6cb0;
+            background: #dbeafe;
+            padding: 0 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
         }
 
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 10px;
-            align-items: end;
+        /* ---------- Database list ---------- */
+        .db-section {
+            margin-top: 8px;
         }
-
-        /* ===== TABLE / LIST ===== */
-        .list-header {
+        .db-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 14px;
-            flex-wrap: wrap;
-            gap: 8px;
+            margin-bottom: 10px;
         }
-
-        .list-header .count {
-            font-size: 14px;
-            color: #64748b;
-        }
-
-        .list-search {
-            display: flex;
-            gap: 8px;
-            flex: 1;
-            min-width: 160px;
-        }
-
-        .list-search .form-control {
-            padding: 8px 12px;
-            font-size: 14px;
-            border-radius: 8px;
-        }
-
-        .table-wrap {
-            overflow-x: auto;
-            border-radius: 12px;
-            border: 1px solid #eef2f6;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-
-        thead {
-            background: #f1f5f9;
-        }
-
-        th {
-            padding: 10px 14px;
-            text-align: left;
+        .db-header h2 {
+            font-size: 16px;
             font-weight: 600;
-            color: #475569;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            border-bottom: 1px solid #e2e8f0;
+            color: #2d3748;
         }
-
-        td {
-            padding: 10px 14px;
-            border-bottom: 1px solid #f1f5f9;
-            vertical-align: middle;
-            word-break: break-word;
+        .db-header .count {
+            background: #edf2f7;
+            padding: 2px 12px;
+            border-radius: 30px;
+            font-size: 13px;
+            color: #4a5568;
         }
-
-        tr:last-child td {
+        .db-list {
+            max-height: 260px;
+            overflow-y: auto;
+            border-radius: 14px;
+            border: 1px solid #edf2f7;
+        }
+        .db-list .empty {
+            padding: 30px 20px;
+            text-align: center;
+            color: #a0aec0;
+            font-size: 14px;
+        }
+        .db-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #edf2f7;
+            gap: 12px;
+            transition: 0.15s;
+        }
+        .db-item:last-child {
             border-bottom: none;
         }
-
-        tr:hover td {
-            background: #fafcff;
+        .db-item:hover {
+            background: #f7fafc;
         }
-
-        .barcode-cell {
+        .db-item .code {
             font-family: 'Courier New', monospace;
             font-weight: 600;
-            color: #0f172a;
-            font-size: 13px;
-            letter-spacing: 0.5px;
+            font-size: 14px;
+            color: #2b6cb0;
+            min-width: 80px;
+            flex-shrink: 0;
         }
-
-        .desc-cell {
-            color: #334155;
+        .db-item .desc {
+            flex: 1;
+            font-size: 14px;
+            color: #2d3748;
+            word-break: break-word;
         }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #94a3b8;
+        .db-item .desc.empty-desc {
+            color: #a0aec0;
+            font-style: italic;
         }
-
-        .empty-state .big-icon {
-            font-size: 48px;
-            display: block;
-            margin-bottom: 12px;
-            opacity: 0.5;
-        }
-
-        .empty-state p {
-            font-size: 15px;
-        }
-
-        /* ===== RESULT (lookup) ===== */
-        .result-box {
-            padding: 20px;
-            border-radius: 14px;
-            margin-top: 16px;
-            text-align: center;
-            border: 2px dashed #e2e8f0;
-            background: #fafcff;
-            min-height: 80px;
+        .db-item .actions {
             display: flex;
-            flex-direction: column;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .db-item .actions button {
+            background: transparent;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: 0.15s;
+            color: #718096;
+        }
+        .db-item .actions button:hover {
+            background: #edf2f7;
+        }
+        .db-item .actions .edit:hover {
+            color: #2b6cb0;
+        }
+        .db-item .actions .del:hover {
+            color: #e53e3e;
+            background: #fff5f5;
+        }
+
+        /* ---------- Modal ---------- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
             align-items: center;
             justify-content: center;
+            z-index: 1000;
+            padding: 20px;
         }
-
-        .result-box.found {
-            border-color: #16a34a;
-            background: #f0fdf4;
+        .modal-overlay.open {
+            display: flex;
         }
-
-        .result-box.not-found {
-            border-color: #dc2626;
-            background: #fef2f2;
+        .modal {
+            background: white;
+            border-radius: 24px;
+            padding: 28px 24px 24px;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+            animation: modalIn 0.25s ease;
         }
-
-        .result-box .result-barcode {
-            font-family: 'Courier New', monospace;
-            font-size: 18px;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 4px;
-        }
-
-        .result-box .result-desc {
-            font-size: 20px;
-            font-weight: 600;
-            color: #0f172a;
-        }
-
-        .result-box .result-label {
-            font-size: 13px;
-            color: #64748b;
-        }
-
-        .result-box .not-found-text {
-            color: #dc2626;
-            font-weight: 600;
-            font-size: 18px;
-        }
-
-        /* ===== TOAST ===== */
-        .toast-container {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999;
-            width: 90%;
-            max-width: 400px;
-        }
-
-        .toast {
-            padding: 14px 20px;
-            border-radius: 14px;
-            font-weight: 500;
-            font-size: 14px;
-            color: #ffffff;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
-            animation: slideUp 0.35s ease;
-            text-align: center;
-        }
-
-        .toast.success {
-            background: #16a34a;
-        }
-        .toast.error {
-            background: #dc2626;
-        }
-        .toast.info {
-            background: #1e40af;
-        }
-
-        @keyframes slideUp {
+        @keyframes modalIn {
             from {
+                transform: scale(0.92) translateY(20px);
                 opacity: 0;
-                transform: translateY(20px) scale(0.96);
             }
             to {
+                transform: scale(1) translateY(0);
                 opacity: 1;
-                transform: translateY(0) scale(1);
             }
         }
+        .modal h3 {
+            font-size: 18px;
+            margin-bottom: 6px;
+        }
+        .modal .sub {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        .modal .sub .code-display {
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            color: #2b6cb0;
+        }
+        .modal textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 70px;
+            outline: none;
+            transition: 0.2s;
+        }
+        .modal textarea:focus {
+            border-color: #2b6cb0;
+            box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.12);
+        }
+        .modal .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            justify-content: flex-end;
+        }
+        .modal .modal-actions button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .modal .modal-actions .cancel {
+            background: #edf2f7;
+            color: #4a5568;
+        }
+        .modal .modal-actions .cancel:hover {
+            background: #e2e8f0;
+        }
+        .modal .modal-actions .save {
+            background: #2b6cb0;
+            color: white;
+        }
+        .modal .modal-actions .save:hover {
+            background: #1a4f8b;
+        }
 
-        /* ===== SCROLLBAR ===== */
-        ::-webkit-scrollbar {
+        /* ---------- Scrollbar ---------- */
+        .db-list::-webkit-scrollbar {
             width: 5px;
-            height: 5px;
         }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 10px;
+        .db-list::-webkit-scrollbar-track {
+            background: transparent;
         }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+        .db-list::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
             border-radius: 10px;
         }
 
-        /* ===== RESPONSIVE ===== */
+        /* ---------- Responsive ---------- */
         @media (max-width: 500px) {
             .app {
                 padding: 16px 14px 24px;
                 border-radius: 20px;
             }
-
-            .app-header h1 {
-                font-size: 18px;
-            }
-
             .tab-btn {
-                font-size: 12px;
+                font-size: 11px;
                 padding: 8px 4px;
             }
-            .tab-btn .tab-icon {
-                font-size: 16px;
+            .tab-btn .icon {
+                font-size: 14px;
             }
-
-            .btn {
-                font-size: 13px;
-                padding: 8px 14px;
+            .controls .btn {
+                font-size: 12px;
+                padding: 8px 12px;
             }
-
-            .form-row {
-                grid-template-columns: 1fr;
+            .manual-row input {
+                font-size: 14px;
+                padding: 8px 12px;
             }
-
-            .scanner-controls .btn {
-                min-width: 60px;
-            }
-
-            .list-header {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .list-search {
+            .db-item {
                 flex-wrap: wrap;
+                gap: 6px;
             }
-
-            .list-search .form-control {
-                flex: 1;
-                min-width: 120px;
-            }
-
-            .card {
-                padding: 14px;
-            }
-
-            th,
-            td {
-                padding: 8px 10px;
+            .db-item .code {
+                min-width: 60px;
                 font-size: 13px;
             }
-
-            .result-box .result-desc {
-                font-size: 17px;
+            .status {
+                font-size: 13px;
+                padding: 12px 14px;
+                min-height: 48px;
+            }
+            .modal {
+                padding: 20px 16px;
             }
         }
 
-        @media (max-width: 380px) {
-            .tabs {
-                grid-template-columns: 1fr 1fr 1fr;
-                gap: 4px;
-                padding: 3px;
+        /* ---------- Camera loading ---------- */
+        .camera-loading {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a202c;
+            color: #a0aec0;
+            font-size: 14px;
+            flex-direction: column;
+            gap: 12px;
+            border-radius: 18px;
+        }
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #2d3748;
+            border-top-color: #63b3ed;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
             }
-            .tab-btn {
-                font-size: 11px;
-                padding: 6px 2px;
-            }
-            .tab-btn .tab-icon {
-                font-size: 14px;
-            }
+        }
+        .camera-wrapper .placeholder .sub-text {
+            font-size: 13px;
+            color: #718096;
+            margin-top: 4px;
         }
     </style>
 </head>
 <body>
 
     <div class="app" id="app">
+        <!-- Header -->
+        <h1>
+            📦 База ШК
+            <span class="badge-db" id="dbBadge">0</span>
+        </h1>
 
-        <!-- HEADER -->
-        <header class="app-header">
-            <span class="icon">📦</span>
-            <h1>База штрихкодов</h1>
-            <span class="badge" id="totalBadge">0</span>
-        </header>
-
-        <!-- TABS -->
-        <div class="tabs" role="tablist">
-            <button class="tab-btn active" data-tab="tab-add" role="tab">
-                <span class="tab-icon">➕</span> Добавить
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-mode="add" id="tabAdd">
+                <span class="icon">➕</span> Добавить
             </button>
-            <button class="tab-btn" data-tab="tab-list" role="tab">
-                <span class="tab-icon">📋</span> Список
+            <button class="tab-btn" data-mode="info" id="tabInfo">
+                <span class="icon">✏️</span> Описание
             </button>
-            <button class="tab-btn" data-tab="tab-find" role="tab">
-                <span class="tab-icon">🔍</span> Найти
+            <button class="tab-btn" data-mode="lookup" id="tabLookup">
+                <span class="icon">🔍</span> Найти
             </button>
         </div>
 
-        <!-- ============================================================ -->
-        <!-- TAB 1 — ДОБАВИТЬ -->
-        <!-- ============================================================ -->
-        <section class="tab-content active" id="tab-add" role="tabpanel">
-
-            <div class="card">
-                <div class="card-title">📷 Сканировать штрихкод</div>
-
-                <div id="scanner-container">
-                    <div class="scanner-placeholder" id="scannerPlaceholder">
-                        <span class="big-icon">📸</span>
-                        <span>Нажмите «Запустить камеру»</span>
-                        <span style="font-size:12px; opacity:0.6;">для сканирования штрихкода</span>
-                    </div>
-                </div>
-
-                <div class="scanner-controls">
-                    <button class="btn btn-primary" id="btnStartScan">▶ Запустить камеру</button>
-                    <button class="btn btn-outline" id="btnStopScan">⏹ Остановить</button>
-                </div>
+        <!-- Camera -->
+        <div class="camera-wrapper" id="cameraWrapper">
+            <video id="video" autoplay playsinline muted></video>
+            <div class="scan-overlay" id="scanOverlay">
+                <span class="corner tl"></span>
+                <span class="corner tr"></span>
+                <span class="corner bl"></span>
+                <span class="corner br"></span>
             </div>
-
-            <div class="card">
-                <div class="card-title">✏️ Информация о товаре</div>
-
-                <div class="form-group">
-                    <label>Штрихкод <span class="hint">(заполняется автоматически при сканировании)</span></label>
-                    <input type="text" class="form-control" id="inputBarcode" placeholder="Например: 4601234567890" />
-                </div>
-
-                <div class="form-group">
-                    <label>Описание <span class="hint">(название товара, артикул и т.п.)</span></label>
-                    <input type="text" class="form-control" id="inputDescription" placeholder="Введите описание товара" />
-                </div>
-
-                <button class="btn btn-success" id="btnSaveBarcode" style="width:100%;">
-                    💾 Сохранить в базу
-                </button>
+            <div class="camera-loading" id="cameraLoading">
+                <div class="spinner"></div>
+                <span>Запуск камеры...</span>
             </div>
-
-            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-                <button class="btn btn-outline btn-sm" id="btnClearAddForm">🗑 Очистить форму</button>
+            <div class="placeholder" id="placeholder" style="display:none;">
+                <span class="big-icon">📷</span>
+                Нажмите «Старт» для сканирования
+                <div class="sub-text">или введите ШК вручную</div>
             </div>
-        </section>
+        </div>
 
-        <!-- ============================================================ -->
-        <!-- TAB 2 — СПИСОК -->
-        <!-- ============================================================ -->
-        <section class="tab-content" id="tab-list" role="tabpanel">
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn btn-primary" id="btnStart">▶ Старт</button>
+            <button class="btn btn-outline" id="btnStop" disabled>⏹ Стоп</button>
+            <span style="flex:1; min-width:40px;"></span>
+            <button class="btn btn-danger" id="btnClearAll" title="Удалить все записи">🗑 Очистить</button>
+        </div>
 
-            <div class="list-header">
-                <span class="count" id="listCount">Всего: 0</span>
-                <div class="list-search">
-                    <input type="text" class="form-control" id="searchInput" placeholder="🔎 Поиск по ШК или описанию…" />
-                    <button class="btn btn-outline btn-sm" id="btnClearSearch">✕</button>
-                </div>
+        <!-- Manual input -->
+        <div class="manual-row">
+            <input type="text" id="manualInput" placeholder="Введите ШК вручную..." />
+            <button id="btnManual">➜</button>
+        </div>
+
+        <!-- Status -->
+        <div class="status" id="status">
+            <span>📌 Готов к сканированию</span>
+        </div>
+
+        <!-- Database list -->
+        <div class="db-section">
+            <div class="db-header">
+                <h2>📋 Все записи</h2>
+                <span class="count" id="countLabel">0</span>
             </div>
-
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width:40%;">Штрихкод</th>
-                            <th style="width:45%;">Описание</th>
-                            <th style="width:15%;text-align:right;">Действие</th>
-                        </tr>
-                    </thead>
-                    <tbody id="listBody">
-                        <!-- динамически -->
-                    </tbody>
-                </table>
+            <div class="db-list" id="dbList">
+                <div class="empty">Нет записей. Добавьте первый штрихкод!</div>
             </div>
-
-            <div style="margin-top:16px; display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
-                <button class="btn btn-danger btn-sm" id="btnClearAll">🗑 Очистить всю базу</button>
-                <button class="btn btn-outline btn-sm" id="btnExportJSON">📤 Экспорт JSON</button>
-                <button class="btn btn-outline btn-sm" id="btnImportJSON">📥 Импорт JSON</button>
-                <input type="file" id="fileInput" accept=".json" style="display:none;" />
-            </div>
-        </section>
-
-        <!-- ============================================================ -->
-        <!-- TAB 3 — НАЙТИ (ПРОБИТЬ) -->
-        <!-- ============================================================ -->
-        <section class="tab-content" id="tab-find" role="tabpanel">
-
-            <div class="card">
-                <div class="card-title">📷 Сканируйте штрихкод для поиска</div>
-
-                <div id="scanner-container-find">
-                    <div class="scanner-placeholder" id="scannerPlaceholderFind">
-                        <span class="big-icon">🔎</span>
-                        <span>Нажмите «Запустить камеру»</span>
-                        <span style="font-size:12px; opacity:0.6;">для пробивки штрихкода</span>
-                    </div>
-                </div>
-
-                <div class="scanner-controls">
-                    <button class="btn btn-primary" id="btnStartScanFind">▶ Запустить камеру</button>
-                    <button class="btn btn-outline" id="btnStopScanFind">⏹ Остановить</button>
-                </div>
-            </div>
-
-            <div class="result-box" id="resultBox">
-                <span style="color:#94a3b8;">Ожидание сканирования…</span>
-            </div>
-
-            <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
-                <input type="text" class="form-control" id="manualFindInput" placeholder="Введите ШК вручную" style="flex:1; min-width:140px;" />
-                <button class="btn btn-primary" id="btnManualFind">🔍 Найти</button>
-            </div>
-        </section>
-
+        </div>
     </div>
 
-    <!-- TOAST контейнер -->
-    <div class="toast-container" id="toastContainer"></div>
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h3 id="modalTitle">✏️ Редактировать описание</h3>
+            <div class="sub" id="modalSub">ШК: <span class="code-display" id="modalCode">—</span></div>
+            <textarea id="modalTextarea" placeholder="Введите описание товара…"></textarea>
+            <div class="modal-actions">
+                <button class="cancel" id="modalCancel">Отмена</button>
+                <button class="save" id="modalSave">💾 Сохранить</button>
+            </div>
+        </div>
+    </div>
 
-
-    <!-- ============================================================ -->
-    <!-- JAVASCRIPT -->
-    <!-- ============================================================ -->
     <script>
-        (function() {
-            'use strict';
+        // ============================================================
+        //  STATE
+        // ============================================================
+        const DB_KEY = 'barcodeDB';
+        let db = {}; // { barcode: description }
+        let mode = 'add'; // 'add' | 'info' | 'lookup'
+        let cameraActive = false;
+        let scanInterval = null;
+        let lastScanned = null;
+        let modalResolve = null;
 
-            // -------- DATA LAYER (localStorage) --------
-            const STORAGE_KEY = 'barcode_db_data';
+        // DOM refs
+        const video = document.getElementById('video');
+        const cameraLoading = document.getElementById('cameraLoading');
+        const placeholder = document.getElementById('placeholder');
+        const statusEl = document.getElementById('status');
+        const dbList = document.getElementById('dbList');
+        const countLabel = document.getElementById('countLabel');
+        const dbBadge = document.getElementById('dbBadge');
+        const manualInput = document.getElementById('manualInput');
 
-            function loadDB() {
-                try {
-                    const raw = localStorage.getItem(STORAGE_KEY);
-                    if (raw) {
-                        const data = JSON.parse(raw);
-                        if (Array.isArray(data)) return data;
+        const tabAdd = document.getElementById('tabAdd');
+        const tabInfo = document.getElementById('tabInfo');
+        const tabLookup = document.getElementById('tabLookup');
+        const btnStart = document.getElementById('btnStart');
+        const btnStop = document.getElementById('btnStop');
+        const btnClearAll = document.getElementById('btnClearAll');
+        const btnManual = document.getElementById('btnManual');
+
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalSub = document.getElementById('modalSub');
+        const modalCode = document.getElementById('modalCode');
+        const modalTextarea = document.getElementById('modalTextarea');
+        const modalCancel = document.getElementById('modalCancel');
+        const modalSave = document.getElementById('modalSave');
+
+        // ============================================================
+        //  DB HELPERS
+        // ============================================================
+        function loadDB() {
+            try {
+                const raw = localStorage.getItem(DB_KEY);
+                db = raw ? JSON.parse(raw) : {};
+            } catch {
+                db = {};
+            }
+            renderList();
+        }
+
+        function saveDB() {
+            localStorage.setItem(DB_KEY, JSON.stringify(db));
+            renderList();
+        }
+
+        function getBarcodeInfo(code) {
+            return db[code] || null;
+        }
+
+        function setBarcodeInfo(code, desc) {
+            db[code] = desc || '';
+            saveDB();
+        }
+
+        function deleteBarcode(code) {
+            delete db[code];
+            saveDB();
+        }
+
+        function barcodeExists(code) {
+            return code in db;
+        }
+
+        function countEntries() {
+            return Object.keys(db).length;
+        }
+
+        // ============================================================
+        //  RENDER
+        // ============================================================
+        function renderList() {
+            const keys = Object.keys(db);
+            const count = keys.length;
+            countLabel.textContent = count;
+            dbBadge.textContent = count;
+
+            if (count === 0) {
+                dbList.innerHTML = `<div class="empty">📭 Нет записей. Добавьте первый штрихкод!</div>`;
+                return;
+            }
+
+            let html = '';
+            // sort by key
+            keys.sort((a, b) => a.localeCompare(b));
+            for (const code of keys) {
+                const desc = db[code] || '';
+                const descDisplay = desc || '<span class="empty-desc">(нет описания)</span>';
+                html += `
+                    <div class="db-item" data-code="${escapeHtml(code)}">
+                        <span class="code">${escapeHtml(code)}</span>
+                        <span class="desc">${descDisplay}</span>
+                        <div class="actions">
+                            <button class="edit" data-code="${escapeHtml(code)}" title="Редактировать">✏️</button>
+                            <button class="del" data-code="${escapeHtml(code)}" title="Удалить">🗑</button>
+                        </div>
+                    </div>
+                `;
+            }
+            dbList.innerHTML = html;
+
+            // event listeners
+            dbList.querySelectorAll('.edit').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const code = btn.dataset.code;
+                    openEditModal(code);
+                });
+            });
+            dbList.querySelectorAll('.del').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const code = btn.dataset.code;
+                    if (confirm(`Удалить штрихкод «${code}»?`)) {
+                        deleteBarcode(code);
+                        setStatus(`🗑 Удалён: ${code}`, 'warning');
                     }
-                } catch (_) { /* ignore */ }
-                return [];
+                });
+            });
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ============================================================
+        //  STATUS
+        // ============================================================
+        function setStatus(msg, type = 'info', highlight = null) {
+            let html = msg;
+            if (highlight) {
+                html = msg.replace(highlight, `<span class="highlight">${highlight}</span>`);
             }
+            statusEl.innerHTML = html;
+            statusEl.className = 'status ' + type;
+        }
 
-            function saveDB(data) {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        // ============================================================
+        //  CAMERA / BARCODE DETECTION
+        // ============================================================
+        async function startCamera() {
+            if (cameraActive) return;
+            try {
+                cameraLoading.style.display = 'flex';
+                placeholder.style.display = 'none';
+                video.style.display = 'none';
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+                });
+                video.srcObject = stream;
+                await video.play();
+
+                // Check if BarcodeDetector is available
+                if (!('BarcodeDetector' in window)) {
+                    setStatus('⚠️ Ваш браузер не поддерживает сканирование камерой. Используйте ручной ввод.', 'error');
+                    cameraLoading.style.display = 'none';
+                    placeholder.style.display = 'flex';
+                    video.style.display = 'none';
+                    return;
+                }
+
+                cameraLoading.style.display = 'none';
+                video.style.display = 'block';
+                cameraActive = true;
+                btnStart.disabled = true;
+                btnStop.disabled = false;
+                setStatus('📷 Камера запущена. Наведите на штрихкод...', 'info');
+
+                // Start scanning
+                if (scanInterval) clearInterval(scanInterval);
+                const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e',
+                        'itf', 'codabar'
+                    ] });
+
+                scanInterval = setInterval(async () => {
+                    if (!cameraActive || video.readyState < 2) return;
+                    try {
+                        const barcodes = await detector.detect(video);
+                        if (barcodes.length > 0) {
+                            const code = barcodes[0].rawValue;
+                            if (code !== lastScanned) {
+                                lastScanned = code;
+                                handleBarcode(code);
+                            }
+                        } else {
+                            // Reset lastScanned when no barcode is visible, to allow re-scanning same code
+                            // but with a small delay to avoid flicker
+                        }
+                    } catch (err) {
+                        // ignore
+                    }
+                }, 350);
+
+                // Reset lastScanned after a timeout if no barcode is detected
+                let resetTimer = null;
+                const origHandle = handleBarcode;
+                handleBarcode = function(code) {
+                    if (resetTimer) clearTimeout(resetTimer);
+                    origHandle(code);
+                    resetTimer = setTimeout(() => {
+                        lastScanned = null;
+                    }, 2000);
+                };
+
+            } catch (err) {
+                console.error('Camera error:', err);
+                cameraLoading.style.display = 'none';
+                placeholder.style.display = 'flex';
+                video.style.display = 'none';
+                setStatus('❌ Не удалось открыть камеру: ' + err.message, 'error');
+                btnStart.disabled = false;
+                btnStop.disabled = true;
             }
+        }
 
-            function generateId() {
-                return Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+        function stopCamera() {
+            cameraActive = false;
+            if (scanInterval) {
+                clearInterval(scanInterval);
+                scanInterval = null;
             }
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(t => t.stop());
+                video.srcObject = null;
+            }
+            video.style.display = 'none';
+            placeholder.style.display = 'flex';
+            cameraLoading.style.display = 'none';
+            btnStart.disabled = false;
+            btnStop.disabled = true;
+            lastScanned = null;
+            setStatus('⏹ Камера остановлена', 'info');
+        }
 
-            // -------- STATE --------
-            let db = loadDB();
-            let currentScanCode = ''; // последний отсканированный код
+        // ============================================================
+        //  HANDLE BARCODE
+        // ============================================================
+        function handleBarcode(code) {
+            if (!code || code.length < 3) return;
 
-            // Для сканеров
-            let scannerAdd = null;
-            let scannerFind = null;
-            let isScanningAdd = false;
-            let isScanningFind = false;
+            const exists = barcodeExists(code);
+            const info = getBarcodeInfo(code);
 
-            // -------- DOM REFS --------
-            const $ = (sel) => document.querySelector(sel);
-            const $$ = (sel) => document.querySelectorAll(sel);
+            switch (mode) {
+                case 'add':
+                    if (exists) {
+                        setStatus(`⚠️ ШК <span class="highlight">${code}</span> уже есть в базе`, 'warning', code);
+                    } else {
+                        setBarcodeInfo(code, '');
+                        setStatus(`✅ ШК <span class="highlight">${code}</span> добавлен!`, 'success', code);
+                        // Play subtle feedback
+                    }
+                    break;
 
-            // Tabs
-            const tabBtns = $$('.tab-btn');
-            const tabContents = {
-                add: $('#tab-add'),
-                list: $('#tab-list'),
-                find: $('#tab-find')
+                case 'info':
+                    if (exists) {
+                        openEditModal(code, () => {
+                            setStatus(`✏️ Описание для <span class="highlight">${code}</span> обновлено`, 'success',
+                            code);
+                        });
+                    } else {
+                        setStatus(`❌ ШК <span class="highlight">${code}</span> не найден в базе`, 'error', code);
+                    }
+                    break;
+
+                case 'lookup':
+                    if (exists) {
+                        const desc = info || '(нет описания)';
+                        setStatus(`🔍 <span class="highlight">${code}</span> → ${desc}`, 'success', code);
+                    } else {
+                        setStatus(`❌ ШК <span class="highlight">${code}</span> не найден`, 'error', code);
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        // ============================================================
+        //  MODAL
+        // ============================================================
+        function openEditModal(code, onSaveCallback) {
+            const info = getBarcodeInfo(code) || '';
+            modalCode.textContent = code;
+            modalTextarea.value = info;
+            modalTitle.textContent = '✏️ Редактировать описание';
+            modalSub.innerHTML = `ШК: <span class="code-display">${code}</span>`;
+            modalOverlay.classList.add('open');
+            modalTextarea.focus();
+            modalTextarea.select();
+
+            // Store callback
+            const saveHandler = () => {
+                const newDesc = modalTextarea.value.trim();
+                setBarcodeInfo(code, newDesc);
+                modalOverlay.classList.remove('open');
+                if (onSaveCallback) onSaveCallback();
+                renderList();
             };
 
-            // Add tab
-            const scannerContainer = $('#scanner-container');
-            const placeholderAdd = $('#scannerPlaceholder');
-            const inputBarcode = $('#inputBarcode');
-            const inputDescription = $('#inputDescription');
-            const btnStartScan = $('#btnStartScan');
-            const btnStopScan = $('#btnStopScan');
-            const btnSave = $('#btnSaveBarcode');
-            const btnClearForm = $('#btnClearAddForm');
+            // Remove old listeners and add new ones
+            const newSave = () => saveHandler();
+            const newCancel = () => {
+                modalOverlay.classList.remove('open');
+            };
 
-            // List tab
-            const listBody = $('#listBody');
-            const listCount = $('#listCount');
-            const searchInput = $('#searchInput');
-            const btnClearSearch = $('#btnClearSearch');
-            const btnClearAll = $('#btnClearAll');
-            const btnExport = $('#btnExportJSON');
-            const btnImport = $('#btnImportJSON');
-            const fileInput = $('#fileInput');
-            const totalBadge = $('#totalBadge');
+            modalSave.onclick = newSave;
+            modalCancel.onclick = newCancel;
 
-            // Find tab
-            const scannerContainerFind = $('#scanner-container-find');
-            const placeholderFind = $('#scannerPlaceholderFind');
-            const resultBox = $('#resultBox');
-            const btnStartScanFind = $('#btnStartScanFind');
-            const btnStopScanFind = $('#btnStopScanFind');
-            const manualFindInput = $('#manualFindInput');
-            const btnManualFind = $('#btnManualFind');
-
-            // Toast
-            const toastContainer = $('#toastContainer');
-
-            // -------- TOAST --------
-            let toastTimer = null;
-
-            function showToast(message, type = 'info', duration = 3000) {
-                if (toastTimer) {
-                    clearTimeout(toastTimer);
-                    toastTimer = null;
+            // Enter key in textarea
+            modalTextarea.onkeydown = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    saveHandler();
                 }
-                toastContainer.innerHTML = `<div class="toast ${type}">${message}</div>`;
-                toastTimer = setTimeout(() => {
-                    toastContainer.innerHTML = '';
-                    toastTimer = null;
-                }, duration);
+            };
+        }
+
+        // Close modal on overlay click
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.classList.remove('open');
             }
+        });
 
-            // -------- RENDER LIST --------
-            function renderList(filter = '') {
-                const q = filter.trim().toLowerCase();
-                let items = db;
-                if (q) {
-                    items = items.filter(item =>
-                        item.barcode.toLowerCase().includes(q) ||
-                        (item.description && item.description.toLowerCase().includes(q))
-                    );
-                }
-                // Сортируем по дате добавления (новые сверху)
-                items = [...items].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        // ============================================================
+        //  MANUAL INPUT
+        // ============================================================
+        function handleManualInput() {
+            const code = manualInput.value.trim();
+            if (!code) {
+                setStatus('⚠️ Введите штрихкод', 'warning');
+                return;
+            }
+            manualInput.value = '';
+            // Simulate barcode detection
+            lastScanned = code;
+            handleBarcode(code);
+            // Reset lastScanned after a moment to allow re-scan
+            setTimeout(() => { lastScanned = null; }, 2000);
+        }
 
-                listCount.textContent = `Всего: ${items.length} из ${db.length}`;
-                totalBadge.textContent = db.length;
+        // ============================================================
+        //  TAB SWITCHING
+        // ============================================================
+        function setMode(newMode) {
+            mode = newMode;
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.toggle('active', el.dataset.mode === newMode);
+            });
+            const labels = {
+                add: '➕ Добавление',
+                info: '✏️ Добавление описания',
+                lookup: '🔍 Поиск'
+            };
+            setStatus(`📌 Режим: ${labels[newMode]}. Наведите камеру на ШК.`, 'info');
+            // Reset last scanned to avoid cross-mode interference
+            lastScanned = null;
+        }
 
-                if (items.length === 0) {
-                    listBody.innerHTML = `
-                            <tr><td colspan="3">
-                                <div class="empty-state">
-                                    <span class="big-icon">📭</span>
-                                    <p>${db.length === 0 ? 'База пуста. Добавьте штрихкоды!' : 'Ничего не найдено'}</p>
-                                </div>
-                            </td></tr>
-                        `;
+        // ============================================================
+        //  INIT
+        // ============================================================
+        function init() {
+            loadDB();
+
+            // Set default mode
+            setMode('add');
+
+            // Tab events
+            tabAdd.addEventListener('click', () => setMode('add'));
+            tabInfo.addEventListener('click', () => setMode('info'));
+            tabLookup.addEventListener('click', () => setMode('lookup'));
+
+            // Camera controls
+            btnStart.addEventListener('click', startCamera);
+            btnStop.addEventListener('click', stopCamera);
+
+            // Manual input
+            btnManual.addEventListener('click', handleManualInput);
+            manualInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') handleManualInput();
+            });
+
+            // Clear all
+            btnClearAll.addEventListener('click', () => {
+                if (countEntries() === 0) {
+                    setStatus('📭 База уже пуста', 'info');
                     return;
                 }
-
-                let html = '';
-                items.forEach(item => {
-                    const desc = item.description || '—';
-                    html += `
-                            <tr>
-                                <td class="barcode-cell">${escapeHtml(item.barcode)}</td>
-                                <td class="desc-cell">${escapeHtml(desc)}</td>
-                                <td style="text-align:right;">
-                                    <button class="btn btn-danger btn-sm" data-id="${item.id}" data-action="delete-item">✕</button>
-                                </td>
-                            </tr>
-                        `;
-                });
-                listBody.innerHTML = html;
-
-                // Делегирование на кнопки удаления
-                listBody.querySelectorAll('[data-action="delete-item"]').forEach(btn => {
-                    btn.addEventListener('click', function(e) {
-                        const id = this.dataset.id;
-                        if (confirm('Удалить этот штрихкод из базы?')) {
-                            db = db.filter(item => item.id !== id);
-                            saveDB(db);
-                            renderList(searchInput.value);
-                            showToast('Запись удалена', 'info');
-                        }
-                    });
-                });
-            }
-
-            function escapeHtml(text) {
-                if (!text) return '';
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            }
-
-            // -------- ОБНОВЛЕНИЕ БЭДЖА --------
-            function updateBadge() {
-                totalBadge.textContent = db.length;
-            }
-
-            // -------- СОХРАНЕНИЕ НОВОГО ШК --------
-            function saveBarcode(barcode, description) {
-                barcode = barcode.trim();
-                description = description.trim();
-
-                if (!barcode) {
-                    showToast('Введите или отсканируйте штрихкод!', 'error');
-                    return false;
-                }
-
-                // Проверяем, есть ли уже такой ШК
-                const existing = db.find(item => item.barcode === barcode);
-                if (existing) {
-                    // Обновляем описание
-                    if (description) {
-                        existing.description = description;
-                        saveDB(db);
-                        renderList(searchInput.value);
-                        updateBadge();
-                        showToast(`Описание для ${barcode} обновлено!`, 'success');
-                        return true;
-                    } else {
-                        showToast(`Штрихкод ${barcode} уже есть в базе!`, 'error');
-                        return false;
-                    }
-                }
-
-                const newItem = {
-                    id: generateId(),
-                    barcode: barcode,
-                    description: description || '',
-                    createdAt: Date.now()
-                };
-
-                db.push(newItem);
-                saveDB(db);
-                renderList(searchInput.value);
-                updateBadge();
-                showToast(`Штрихкод ${barcode} добавлен!`, 'success');
-                return true;
-            }
-
-            // -------- ОЧИСТКА ФОРМЫ ДОБАВЛЕНИЯ --------
-            function clearAddForm() {
-                inputBarcode.value = '';
-                inputDescription.value = '';
-                currentScanCode = '';
-                resultBox.className = 'result-box';
-                resultBox.innerHTML = `<span style="color:#94a3b8;">Ожидание сканирования…</span>`;
-            }
-
-            // -------- ПОИСК ПО ШК (пробивка) --------
-            function lookupBarcode(barcode) {
-                barcode = barcode.trim();
-                if (!barcode) {
-                    resultBox.className = 'result-box';
-                    resultBox.innerHTML = `<span style="color:#94a3b8;">Введите или отсканируйте штрихкод</span>`;
-                    return;
-                }
-
-                const item = db.find(d => d.barcode === barcode);
-                if (item) {
-                    const desc = item.description || '—';
-                    resultBox.className = 'result-box found';
-                    resultBox.innerHTML = `
-                            <div class="result-label">✅ Найдено</div>
-                            <div class="result-barcode">${escapeHtml(barcode)}</div>
-                            <div class="result-desc">${escapeHtml(desc)}</div>
-                        `;
-                    showToast(`Найден: ${desc}`, 'success', 2000);
-                } else {
-                    resultBox.className = 'result-box not-found';
-                    resultBox.innerHTML = `
-                            <div class="not-found-text">❌ Не найден</div>
-                            <div class="result-barcode">${escapeHtml(barcode)}</div>
-                            <div style="color:#64748b; font-size:14px; margin-top:4px;">Этого штрихкода нет в базе</div>
-                        `;
-                    showToast(`Штрихкод ${barcode} не найден`, 'error', 2000);
-                }
-            }
-
-            // -------- СКАНЕР (общая логика) --------
-            function initScanner(containerId, placeholderId, onSuccess, onError) {
-                const container = document.getElementById(containerId);
-                const placeholder = document.getElementById(placeholderId);
-
-                // Удаляем всё содержимое контейнера, кроме плейсхолдера
-                // Но оставляем только плейсхолдер (он внутри)
-                // При сканировании html5-qrcode вставляет video внутрь контейнера
-
-                // Очищаем контейнер от предыдущих видео
-                const existingVideo = container.querySelector('video');
-                if (existingVideo) existingVideo.remove();
-
-                const existingCanvas = container.querySelector('canvas');
-                if (existingCanvas) existingCanvas.remove();
-
-                // Показываем плейсхолдер
-                placeholder.style.display = 'flex';
-
-                return new Html5Qrcode(containerId);
-            }
-
-            function startScannerInstance(scanner, containerId, placeholderId, onSuccess, onError) {
-                const container = document.getElementById(containerId);
-                const placeholder = document.getElementById(placeholderId);
-
-                if (!scanner) {
-                    showToast('Ошибка инициализации сканера', 'error');
-                    return;
-                }
-
-                const config = {
-                    fps: 20,
-                    qrbox: { width: 280, height: 200 },
-                    aspectRatio: 4 / 3,
-                    formatsToSupport: [
-                        Html5QrcodeSupportedFormats.EAN_13,
-                        Html5QrcodeSupportedFormats.EAN_8,
-                        Html5QrcodeSupportedFormats.UPC_A,
-                        Html5QrcodeSupportedFormats.UPC_E,
-                        Html5QrcodeSupportedFormats.CODE_128,
-                        Html5QrcodeSupportedFormats.CODE_39,
-                        Html5QrcodeSupportedFormats.CODE_93,
-                        Html5QrcodeSupportedFormats.ITF,
-                        Html5QrcodeSupportedFormats.CODABAR,
-                        Html5QrcodeSupportedFormats.QR_CODE,
-                        Html5QrcodeSupportedFormats.DATA_MATRIX,
-                        Html5QrcodeSupportedFormats.AZTEC,
-                    ]
-                };
-
-                scanner.start({ facingMode: 'environment' },
-                    config,
-                    (decodedText, decodedResult) => {
-                        // Успешное сканирование
-                        // Останавливаем сканер, чтобы не сканировал повторно
-                        try {
-                            scanner.stop();
-                        } catch (_) {}
-                        placeholder.style.display = 'flex';
-                        onSuccess(decodedText);
-                    },
-                    (error) => {
-                        // Ошибка сканирования (игнорируем)
-                        // console.debug('Scan error:', error);
-                    }
-                ).then(() => {
-                    // Скрываем плейсхолдер
-                    placeholder.style.display = 'none';
-                    showToast('Камера запущена, наведите на штрихкод', 'info', 1500);
-                }).catch(err => {
-                    showToast('Ошибка доступа к камере: ' + err.message, 'error');
-                    placeholder.style.display = 'flex';
-                    onError && onError(err);
-                });
-            }
-
-            function stopScannerInstance(scanner, placeholderId) {
-                const placeholder = document.getElementById(placeholderId);
-                if (scanner) {
-                    try {
-                        scanner.stop();
-                    } catch (_) {}
-                    try {
-                        scanner.clear();
-                    } catch (_) {}
-                }
-                placeholder.style.display = 'flex';
-                // Удаляем видео
-                const container = scanner ? scanner._element : null;
-                if (container) {
-                    const video = container.querySelector('video');
-                    if (video) video.remove();
-                    const canvas = container.querySelector('canvas');
-                    if (canvas) canvas.remove();
-                }
-            }
-
-            // -------- ИНИЦИАЛИЗАЦИЯ СКАНЕРОВ --------
-            function initScanners() {
-                // Сканер для вкладки "Добавить"
-                const scAdd = new Html5Qrcode('scanner-container');
-                scannerAdd = scAdd;
-
-                // Сканер для вкладки "Найти"
-                const scFind = new Html5Qrcode('scanner-container-find');
-                scannerFind = scFind;
-
-                // Обработчики для кнопок "Добавить"
-                btnStartScan.addEventListener('click', function() {
-                    if (isScanningAdd) {
-                        showToast('Сканер уже запущен', 'info');
-                        return;
-                    }
-                    startScannerInstance(scannerAdd, 'scanner-container', 'scannerPlaceholder',
-                        (code) => {
-                            // Успешно отсканировали
-                            inputBarcode.value = code;
-                            currentScanCode = code;
-                            showToast(`Отсканирован: ${code}`, 'success', 1500);
-                            isScanningAdd = false;
-                            // Автоматически фокус на описание
-                            inputDescription.focus();
-                        },
-                        (err) => {
-                            isScanningAdd = false;
-                        }
-                    );
-                    isScanningAdd = true;
-                });
-
-                btnStopScan.addEventListener('click', function() {
-                    stopScannerInstance(scannerAdd, 'scannerPlaceholder');
-                    isScanningAdd = false;
-                    showToast('Сканер остановлен', 'info');
-                });
-
-                // Обработчики для кнопок "Найти"
-                btnStartScanFind.addEventListener('click', function() {
-                    if (isScanningFind) {
-                        showToast('Сканер уже запущен', 'info');
-                        return;
-                    }
-                    startScannerInstance(scannerFind, 'scanner-container-find', 'scannerPlaceholderFind',
-                        (code) => {
-                            // Успешно отсканировали
-                            lookupBarcode(code);
-                            isScanningFind = false;
-                        },
-                        (err) => {
-                            isScanningFind = false;
-                        }
-                    );
-                    isScanningFind = true;
-                });
-
-                btnStopScanFind.addEventListener('click', function() {
-                    stopScannerInstance(scannerFind, 'scannerPlaceholderFind');
-                    isScanningFind = false;
-                    showToast('Сканер остановлен', 'info');
-                });
-            }
-
-            // -------- ТАБЫ --------
-            function switchTab(tabId) {
-                // Скрываем все
-                Object.values(tabContents).forEach(el => el.classList.remove('active'));
-                // Показываем нужный
-                const target = document.getElementById(tabId);
-                if (target) target.classList.add('active');
-
-                // Обновляем кнопки
-                tabBtns.forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.tab === tabId);
-                });
-
-                // Если переключились на список — обновляем
-                if (tabId === 'tab-list') {
-                    renderList(searchInput.value);
-                }
-
-                // Если переключились на "Найти" — сбрасываем результат
-                if (tabId === 'tab-find') {
-                    resultBox.className = 'result-box';
-                    resultBox.innerHTML = `<span style="color:#94a3b8;">Ожидание сканирования…</span>`;
-                }
-            }
-
-            tabBtns.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const tabId = this.dataset.tab;
-                    switchTab(tabId);
-                });
-            });
-
-            // -------- СОБЫТИЯ --------
-
-            // Сохранение
-            btnSave.addEventListener('click', function() {
-                const barcode = inputBarcode.value.trim();
-                const desc = inputDescription.value.trim();
-                if (!barcode) {
-                    showToast('Сначала отсканируйте или введите штрихкод!', 'error');
-                    return;
-                }
-                const ok = saveBarcode(barcode, desc);
-                if (ok) {
-                    // Очищаем только поле описания, ШК оставляем для быстрого добавления следующего
-                    // но если пользователь хочет новый ШК, он сканирует снова
-                    // Можно оставить как есть, или очистить всё — сделаем очистку формы
-                    // Но лучше оставить ШК и очистить описание для быстрого ввода
-                    inputDescription.value = '';
-                    // Фокус на описание
-                    inputDescription.focus();
-                    // Обновляем список если открыт
-                    if (document.getElementById('tab-list').classList.contains('active')) {
-                        renderList(searchInput.value);
-                    }
+                if (confirm('🗑 Удалить ВСЕ записи из базы?')) {
+                    db = {};
+                    saveDB();
+                    setStatus('🗑 База очищена', 'warning');
                 }
             });
 
-            // Очистка формы
-            btnClearForm.addEventListener('click', clearAddForm);
+            // Show placeholder
+            placeholder.style.display = 'flex';
+            cameraLoading.style.display = 'none';
 
-            // Поиск в списке
-            searchInput.addEventListener('input', function() {
-                renderList(this.value);
-            });
+            // Try to auto-start camera
+            startCamera();
 
-            btnClearSearch.addEventListener('click', function() {
-                searchInput.value = '';
-                renderList('');
-                searchInput.focus();
-            });
-
-            // Очистка всей базы
-            btnClearAll.addEventListener('click', function() {
-                if (db.length === 0) {
-                    showToast('База уже пуста', 'info');
-                    return;
+            // Update count periodically
+            setInterval(() => {
+                const c = countEntries();
+                if (parseInt(countLabel.textContent) !== c) {
+                    renderList();
                 }
-                if (confirm('ВНИМАНИЕ! Удалить ВСЕ штрихкоды из базы?')) {
-                    if (confirm('Вы уверены? Данные будут потеряны безвозвратно!')) {
-                        db = [];
-                        saveDB(db);
-                        renderList('');
-                        updateBadge();
-                        clearAddForm();
-                        resultBox.className = 'result-box';
-                        resultBox.innerHTML = `<span style="color:#94a3b8;">База очищена</span>`;
-                        showToast('База полностью очищена', 'info');
-                    }
-                }
-            });
+            }, 3000);
+        }
 
-            // Экспорт JSON
-            btnExport.addEventListener('click', function() {
-                if (db.length === 0) {
-                    showToast('База пуста, нечего экспортировать', 'error');
-                    return;
-                }
-                const json = JSON.stringify(db, null, 2);
-                const blob = new Blob([json], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `barcodes_${new Date().toISOString().slice(0,10)}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                showToast('Экспорт выполнен', 'success');
-            });
+        // Override handleBarcode to be re-assignable
+        let handleBarcodeFn = handleBarcode;
 
-            // Импорт JSON
-            btnImport.addEventListener('click', function() {
-                fileInput.click();
-            });
+        // Patch: allow handleBarcode to be replaced by camera scanner
+        const originalHandle = handleBarcode;
+        handleBarcode = function(code) {
+            originalHandle(code);
+        };
 
-            fileInput.addEventListener('change', function(e) {
-                const file = this.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = function(ev) {
-                    try {
-                        const data = JSON.parse(ev.target.result);
-                        if (!Array.isArray(data)) {
-                            throw new Error('Неверный формат: ожидается массив');
-                        }
-                        // Проверяем структуру
-                        let valid = true;
-                        data.forEach(item => {
-                            if (!item.barcode) valid = false;
-                        });
-                        if (!valid) {
-                            throw new Error('Некорректные данные: отсутствует поле "barcode"');
-                        }
-                        // Сливаем: добавляем только новые, существующие обновляем
-                        let added = 0,
-                            updated = 0;
-                        data.forEach(item => {
-                            const existing = db.find(d => d.barcode === item.barcode);
-                            if (existing) {
-                                if (item.description && item.description !== existing.description) {
-                                    existing.description = item.description;
-                                    updated++;
-                                }
-                            } else {
-                                db.push({
-                                    id: generateId(),
-                                    barcode: item.barcode,
-                                    description: item.description || '',
-                                    createdAt: Date.now()
-                                });
-                                added++;
-                            }
-                        });
-                        saveDB(db);
-                        renderList(searchInput.value);
-                        updateBadge();
-                        showToast(`Импорт: ${added} добавлено, ${updated} обновлено`, 'success');
-                    } catch (err) {
-                        showToast('Ошибка импорта: ' + err.message, 'error');
-                    }
-                };
-                reader.readAsText(file);
-                this.value = '';
-            });
-
-            // Ручной поиск во вкладке "Найти"
-            btnManualFind.addEventListener('click', function() {
-                const code = manualFindInput.value.trim();
-                if (!code) {
-                    showToast('Введите штрихкод', 'error');
-                    return;
-                }
-                lookupBarcode(code);
-            });
-
-            manualFindInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    btnManualFind.click();
-                }
-            });
-
-            // Также можно нажать Enter в поле описания при добавлении
-            inputDescription.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    btnSave.click();
-                }
-            });
-
-            inputBarcode.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    inputDescription.focus();
-                }
-            });
-
-            // -------- ЗАПУСК --------
-            function init() {
-                // Инициализируем сканеры
-                initScanners();
-
-                // Рендерим список
-                renderList('');
-                updateBadge();
-
-                // Если есть данные, показываем подсказку
-                if (db.length > 0) {
-                    // Можно ничего не делать
-                }
-
-                // При переключении на вкладку "Найти" сбрасываем сканер, если он был запущен
-                // Но это уже обработано в switchTab
-            }
-
-            // Адаптация для мобильных: при потере фокуса на input — скрываем клавиатуру
-            // Ничего дополнительно не нужно
-
-            // Чистка при выгрузке страницы
-            window.addEventListener('beforeunload', function() {
-                try {
-                    if (scannerAdd) scannerAdd.stop();
-                } catch (_) {}
-                try {
-                    if (scannerFind) scannerFind.stop();
-                } catch (_) {}
-            });
-
-            // Запуск
-            init();
-
-            // Обработка ошибок камеры: если пользователь нажал "Запустить" и камера не доступна
-            // Показываем понятное сообщение
-
-            console.log('📦 База данных штрихкодов загружена. Записей:', db.length);
-
-        })();
+        // Start
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 
 </body>
