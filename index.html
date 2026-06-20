@@ -2,1199 +2,915 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>База штрихкодов с анимацией</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Единая база документов по штрих-кодам</title>
+    <!-- Библиотеки -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
-        /* ---------- Reset & Base ---------- */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f0f4f8;
-            color: #1a202c;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            padding: 20px;
-        }
-        .app {
-            max-width: 600px;
-            width: 100%;
-            background: white;
-            border-radius: 28px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
-            overflow: hidden;
-            padding: 24px 20px 32px;
-            position: relative;
-        }
-        h1 {
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: -0.3px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        h1 small {
-            font-size: 14px;
-            font-weight: 400;
-            color: #718096;
-            letter-spacing: 0;
-        }
-        .badge-db {
-            background: #2b6cb0;
-            color: white;
-            font-size: 11px;
-            font-weight: 600;
-            padding: 2px 12px;
-            border-radius: 30px;
-            margin-left: auto;
-            transition: transform 0.2s;
-        }
-        .badge-db.pop {
-            animation: popBadge 0.3s ease;
-        }
-        @keyframes popBadge {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.3); background: #48bb78; }
-            100% { transform: scale(1); }
-        }
-
-        /* ---------- Tabs ---------- */
-        .tabs {
-            display: flex;
-            gap: 6px;
-            background: #edf2f7;
-            border-radius: 16px;
-            padding: 5px;
-            margin-bottom: 20px;
-        }
-        .tab-btn {
-            flex: 1;
-            border: none;
-            background: transparent;
-            padding: 10px 0;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 13px;
-            color: #4a5568;
-            cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-        .tab-btn.active {
-            background: white;
-            color: #2b6cb0;
-            box-shadow: 0 2px 8px rgba(43, 108, 176, 0.15);
-        }
-        .tab-btn:hover:not(.active) {
-            background: rgba(255, 255, 255, 0.5);
-        }
-        .tab-btn .icon {
-            font-size: 16px;
-        }
-
-        /* ---------- Camera ---------- */
-        .camera-wrapper {
-            background: #1a202c;
-            border-radius: 18px;
-            overflow: hidden;
-            position: relative;
-            aspect-ratio: 4/3;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 16px;
-        }
-        .camera-wrapper video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-        .camera-wrapper .placeholder {
-            color: #a0aec0;
-            font-size: 15px;
-            text-align: center;
-            padding: 20px;
-        }
-        .camera-wrapper .placeholder .big-icon {
-            font-size: 48px;
-            display: block;
-            margin-bottom: 10px;
-        }
-        .scan-overlay {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            border: 2px solid rgba(255, 255, 255, 0.15);
-            border-radius: 18px;
-            box-shadow: inset 0 0 0 2px rgba(43, 108, 176, 0.3);
-        }
-        .scan-overlay .corner {
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            border-color: #63b3ed;
-            border-style: solid;
-            border-width: 0;
-        }
-        .scan-overlay .corner.tl {
-            top: 16px;
-            left: 16px;
-            border-top-width: 4px;
-            border-left-width: 4px;
-            border-radius: 4px 0 0 0;
-        }
-        .scan-overlay .corner.tr {
-            top: 16px;
-            right: 16px;
-            border-top-width: 4px;
-            border-right-width: 4px;
-            border-radius: 0 4px 0 0;
-        }
-        .scan-overlay .corner.bl {
-            bottom: 16px;
-            left: 16px;
-            border-bottom-width: 4px;
-            border-left-width: 4px;
-            border-radius: 0 0 0 4px;
-        }
-        .scan-overlay .corner.br {
-            bottom: 16px;
-            right: 16px;
-            border-bottom-width: 4px;
-            border-right-width: 4px;
-            border-radius: 0 0 4px 0;
-        }
-
-        /* Flash overlay */
-        #flashOverlay {
-            position: absolute;
-            inset: 0;
-            background: white;
-            opacity: 0;
-            pointer-events: none;
-            border-radius: 18px;
-            transition: opacity 0.05s;
-            z-index: 10;
-        }
-        #flashOverlay.flash {
-            opacity: 0.8;
-            transition: opacity 0s;
-        }
-        #flashOverlay.flash-end {
-            opacity: 0;
-            transition: opacity 0.4s ease-out;
-        }
-
-        /* ---------- Controls ---------- */
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 16px;
-            align-items: center;
-        }
-        .controls .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: 0.2s;
-            background: #edf2f7;
-            color: #2d3748;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1 1 auto;
-            justify-content: center;
-        }
-        .controls .btn-primary {
-            background: #2b6cb0;
-            color: white;
-        }
-        .controls .btn-primary:hover {
-            background: #1a4f8b;
-        }
-        .controls .btn-success {
-            background: #38a169;
-            color: white;
-        }
-        .controls .btn-success:hover {
-            background: #2f855a;
-        }
-        .controls .btn-danger {
-            background: #e53e3e;
-            color: white;
-        }
-        .controls .btn-danger:hover {
-            background: #c53030;
-        }
-        .controls .btn:disabled {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-        .controls .btn-outline {
-            background: transparent;
-            border: 2px solid #e2e8f0;
-        }
-        .controls .btn-outline:hover {
-            background: #f7fafc;
-        }
-
-        /* ---------- Manual input ---------- */
-        .manual-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-        .manual-row input {
-            flex: 1;
-            padding: 10px 14px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 15px;
-            outline: none;
-            transition: 0.2s;
-            font-family: inherit;
-        }
-        .manual-row input:focus {
-            border-color: #2b6cb0;
-            box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.15);
-        }
-        .manual-row .btn {
-            padding: 10px 18px;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 14px;
-            background: #2b6cb0;
-            color: white;
-            cursor: pointer;
-            transition: 0.2s;
-            white-space: nowrap;
-        }
-        .manual-row .btn:hover {
-            background: #1a4f8b;
-        }
-
-        /* ---------- Status ---------- */
-        .status {
-            padding: 14px 16px;
-            border-radius: 14px;
-            background: #f7fafc;
-            border-left: 5px solid #a0aec0;
-            margin-bottom: 16px;
-            font-size: 14px;
-            min-height: 56px;
-            display: flex;
-            align-items: center;
-            word-break: break-word;
-            transition: background 0.3s, border-color 0.3s, transform 0.15s;
-            position: relative;
-        }
-        .status.info {
-            border-left-color: #2b6cb0;
-            background: #ebf4ff;
-        }
-        .status.success {
-            border-left-color: #38a169;
-            background: #f0fff4;
-        }
-        .status.warning {
-            border-left-color: #d69e2e;
-            background: #fffbeb;
-        }
-        .status.error {
-            border-left-color: #e53e3e;
-            background: #fff5f5;
-        }
-        .status .label {
-            font-weight: 600;
-            margin-right: 6px;
-        }
-        .status .highlight {
-            font-weight: 700;
-            color: #2b6cb0;
-            background: #dbeafe;
-            padding: 0 6px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-        }
-        .status.pop {
-            animation: statusPop 0.3s ease;
-        }
-        @keyframes statusPop {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
-        }
-
-        /* ---------- Database list ---------- */
-        .db-section {
-            margin-top: 8px;
-        }
-        .db-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .db-header h2 {
-            font-size: 16px;
-            font-weight: 600;
-            color: #2d3748;
-        }
-        .db-header .count {
-            background: #edf2f7;
-            padding: 2px 12px;
-            border-radius: 30px;
-            font-size: 13px;
-            color: #4a5568;
-            transition: 0.2s;
-        }
-        .db-list {
-            max-height: 260px;
-            overflow-y: auto;
-            border-radius: 14px;
-            border: 1px solid #edf2f7;
-        }
-        .db-list .empty {
-            padding: 30px 20px;
-            text-align: center;
-            color: #a0aec0;
-            font-size: 14px;
-        }
-        .db-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 16px;
-            border-bottom: 1px solid #edf2f7;
-            gap: 12px;
-            transition: 0.15s;
-            opacity: 1;
-            transform: translateY(0);
-        }
-        .db-item:last-child {
-            border-bottom: none;
-        }
-        .db-item:hover {
-            background: #f7fafc;
-        }
-        .db-item .code {
-            font-family: 'Courier New', monospace;
-            font-weight: 600;
-            font-size: 14px;
-            color: #2b6cb0;
-            min-width: 80px;
-            flex-shrink: 0;
-        }
-        .db-item .desc {
-            flex: 1;
-            font-size: 14px;
-            color: #2d3748;
-            word-break: break-word;
-        }
-        .db-item .desc.empty-desc {
-            color: #a0aec0;
-            font-style: italic;
-        }
-        .db-item .actions {
-            display: flex;
-            gap: 6px;
-            flex-shrink: 0;
-        }
-        .db-item .actions button {
-            background: transparent;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 15px;
-            transition: 0.15s;
-            color: #718096;
-        }
-        .db-item .actions button:hover {
-            background: #edf2f7;
-        }
-        .db-item .actions .edit:hover {
-            color: #2b6cb0;
-        }
-        .db-item .actions .del:hover {
-            color: #e53e3e;
-            background: #fff5f5;
-        }
-
-        /* анимация для нового элемента */
-        .db-item.new-item {
-            animation: slideIn 0.3s ease-out;
-        }
-        @keyframes slideIn {
-            0% { opacity: 0; transform: translateY(-12px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-
-        /* ---------- Modal ---------- */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 20px;
-        }
-        .modal-overlay.open {
-            display: flex;
-        }
-        .modal {
-            background: white;
-            border-radius: 24px;
-            padding: 28px 24px 24px;
-            max-width: 420px;
-            width: 100%;
-            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
-            animation: modalIn 0.25s ease;
-        }
-        @keyframes modalIn {
-            from {
-                transform: scale(0.92) translateY(20px);
-                opacity: 0;
-            }
-            to {
-                transform: scale(1) translateY(0);
-                opacity: 1;
-            }
-        }
-        .modal h3 {
-            font-size: 18px;
-            margin-bottom: 6px;
-        }
-        .modal .sub {
-            color: #718096;
-            font-size: 14px;
-            margin-bottom: 16px;
-        }
-        .modal .sub .code-display {
-            font-family: 'Courier New', monospace;
-            font-weight: 700;
-            color: #2b6cb0;
-        }
-        .modal textarea {
-            width: 100%;
-            padding: 12px 14px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 15px;
-            font-family: inherit;
-            resize: vertical;
-            min-height: 70px;
-            outline: none;
-            transition: 0.2s;
-        }
-        .modal textarea:focus {
-            border-color: #2b6cb0;
-            box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.12);
-        }
-        .modal .modal-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 16px;
-            justify-content: flex-end;
-        }
-        .modal .modal-actions button {
-            padding: 10px 24px;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .modal .modal-actions .cancel {
-            background: #edf2f7;
-            color: #4a5568;
-        }
-        .modal .modal-actions .cancel:hover {
-            background: #e2e8f0;
-        }
-        .modal .modal-actions .save {
-            background: #2b6cb0;
-            color: white;
-        }
-        .modal .modal-actions .save:hover {
-            background: #1a4f8b;
-        }
-
-        /* ---------- Scrollbar ---------- */
-        .db-list::-webkit-scrollbar {
-            width: 5px;
-        }
-        .db-list::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .db-list::-webkit-scrollbar-thumb {
-            background: #cbd5e0;
-            border-radius: 10px;
-        }
-
-        /* ---------- Responsive ---------- */
-        @media (max-width: 500px) {
-            .app {
-                padding: 16px 14px 24px;
-                border-radius: 20px;
-            }
-            .tab-btn {
-                font-size: 11px;
-                padding: 8px 4px;
-            }
-            .tab-btn .icon {
-                font-size: 14px;
-            }
-            .controls .btn {
-                font-size: 12px;
-                padding: 8px 12px;
-            }
-            .manual-row input {
-                font-size: 14px;
-                padding: 8px 12px;
-            }
-            .db-item {
-                flex-wrap: wrap;
-                gap: 6px;
-            }
-            .db-item .code {
-                min-width: 60px;
-                font-size: 13px;
-            }
-            .status {
-                font-size: 13px;
-                padding: 12px 14px;
-                min-height: 48px;
-            }
-            .modal {
-                padding: 20px 16px;
-            }
-        }
-
-        /* ---------- Camera loading ---------- */
-        .camera-loading {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #1a202c;
-            color: #a0aec0;
-            font-size: 14px;
-            flex-direction: column;
-            gap: 12px;
-            border-radius: 18px;
-            z-index: 5;
-        }
-        .spinner {
-            width: 32px;
-            height: 32px;
-            border: 3px solid #2d3748;
-            border-top-color: #63b3ed;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-        .camera-wrapper .placeholder .sub-text {
-            font-size: 13px;
-            color: #718096;
-            margin-top: 4px;
-        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+        body { max-width: 1100px; margin: 20px auto; padding: 0 15px; background: #f0f2f5; }
+        h1 { text-align: center; color: #1a1a2e; }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn { padding: 10px 25px; border: none; border-radius: 30px; background: #e0e0e0; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.2s; }
+        .tab-btn.active { background: #1a1a2e; color: white; }
+        .tab-btn:hover { background: #c0c0c0; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        .flex { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+        .form-group { flex: 1 1 200px; }
+        label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 14px; color: #333; }
+        input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        textarea { resize: vertical; min-height: 60px; }
+        button { background: #1a1a2e; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #16213e; }
+        button.green { background: #28a745; }
+        button.green:hover { background: #1e7e34; }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #a71d2a; }
+        button.outline { background: transparent; border: 2px solid #1a1a2e; color: #1a1a2e; }
+        button.outline:hover { background: #1a1a2e; color: white; }
+        .info-box { background: #f8f9fa; padding: 12px; border-radius: 6px; margin: 10px 0; }
+        .barcode-svg { max-width: 150px; height: 40px; }
+        #scanner-container { width: 100%; max-width: 400px; margin: 10px auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: middle; }
+        th { background: #e9ecef; }
+        .history-item { background: #f1f3f5; padding: 6px 10px; border-radius: 4px; margin: 4px 0; }
+        .btn-small { padding: 4px 10px; font-size: 12px; }
+        .doc-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+        .field-row { display: flex; flex-direction: column; }
+        .field-row label { font-weight: 500; margin-bottom: 2px; }
+        .mode-hint { color: #6c757d; font-size: 14px; margin-bottom: 10px; }
+        .org-type-display { background: #e9ecef; padding: 8px 12px; border-radius: 6px; margin: 6px 0; }
+        .action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+        #result-area { margin-top: 15px; }
+        .hidden { display: none; }
+        .pre-wrap { white-space: pre-wrap; }
     </style>
 </head>
 <body>
 
-    <div class="app" id="app">
-        <!-- Header -->
-        <h1>
-            📦 База ШК
-            <span class="badge-db" id="dbBadge">0</span>
-        </h1>
+<h1>📄 Единая база документов</h1>
 
-        <!-- Tabs -->
-        <div class="tabs">
-            <button class="tab-btn active" data-mode="add" id="tabAdd">
-                <span class="icon">➕</span> Добавить
-            </button>
-            <button class="tab-btn" data-mode="info" id="tabInfo">
-                <span class="icon">✏️</span> Описание
-            </button>
-            <button class="tab-btn" data-mode="lookup" id="tabLookup">
-                <span class="icon">🔍</span> Найти
-            </button>
-        </div>
+<!-- Вкладки режимов -->
+<div class="tabs">
+    <button class="tab-btn active" data-tab="add">➕ Добавить</button>
+    <button class="tab-btn" data-tab="fill">✏️ Заполнить</button>
+    <button class="tab-btn" data-tab="view">🔍 Просмотр</button>
+    <button class="tab-btn" data-tab="list">📋 Все записи</button>
+</div>
 
-        <!-- Camera -->
-        <div class="camera-wrapper" id="cameraWrapper">
-            <video id="video" autoplay playsinline muted></video>
-            <div id="flashOverlay"></div>
-            <div class="scan-overlay" id="scanOverlay">
-                <span class="corner tl"></span>
-                <span class="corner tr"></span>
-                <span class="corner bl"></span>
-                <span class="corner br"></span>
+<!-- ========== РЕЖИМ ДОБАВЛЕНИЯ ========== -->
+<div id="tab-add" class="tab-pane active">
+    <div class="card">
+        <h3>➡️ Первое сканирование – добавление нового документа</h3>
+        <div class="mode-hint">Введите или отсканируйте штрих-код формата <strong>XXYYZZZ</strong> (организация + тип + номер). Если код не существует – будет создана запись.</div>
+        <div class="flex">
+            <div class="form-group" style="flex:2;">
+                <label>Штрих-код (или введите вручную)</label>
+                <input type="text" id="addBarcode" placeholder="Напр. 0101001" />
             </div>
-            <div class="camera-loading" id="cameraLoading">
-                <div class="spinner"></div>
-                <span>Запуск камеры...</span>
-            </div>
-            <div class="placeholder" id="placeholder" style="display:none;">
-                <span class="big-icon">📷</span>
-                Нажмите «Старт» для сканирования
-                <div class="sub-text">или введите ШК вручную</div>
-            </div>
+            <button id="addScanBtn">📷 Сканировать</button>
+            <button id="addStopScanBtn" class="danger hidden">⏹ Остановить</button>
+            <button id="addCheckBtn">🔎 Проверить и добавить</button>
         </div>
-
-        <!-- Controls -->
-        <div class="controls">
-            <button class="btn btn-primary" id="btnStart">▶ Старт</button>
-            <button class="btn btn-outline" id="btnStop" disabled>⏹ Стоп</button>
-            <span style="flex:1; min-width:40px;"></span>
-            <button class="btn btn-danger" id="btnClearAll" title="Удалить все записи">🗑 Очистить</button>
-        </div>
-
-        <!-- Manual input -->
-        <div class="manual-row">
-            <input type="text" id="manualInput" placeholder="Введите ШК вручную..." />
-            <button id="btnManual">➜</button>
-        </div>
-
-        <!-- Status -->
-        <div class="status" id="status">
-            <span>📌 Готов к сканированию</span>
-        </div>
-
-        <!-- Database list -->
-        <div class="db-section">
-            <div class="db-header">
-                <h2>📋 Все записи</h2>
-                <span class="count" id="countLabel">0</span>
-            </div>
-            <div class="db-list" id="dbList">
-                <div class="empty">Нет записей. Добавьте первый штрихкод!</div>
-            </div>
+        <div id="addScannerContainer" class="hidden"></div>
+        <div id="addResult" class="info-box hidden"></div>
+        <div id="addFormContainer" class="hidden">
+            <hr />
+            <div class="org-type-display" id="addOrgTypeDisplay"></div>
+            <button id="addSaveBtn" class="green">✅ Сохранить запись</button>
         </div>
     </div>
+</div>
 
-    <!-- Modal -->
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal">
-            <h3 id="modalTitle">✏️ Редактировать описание</h3>
-            <div class="sub" id="modalSub">ШК: <span class="code-display" id="modalCode">—</span></div>
-            <textarea id="modalTextarea" placeholder="Введите описание товара…"></textarea>
-            <div class="modal-actions">
-                <button class="cancel" id="modalCancel">Отмена</button>
-                <button class="save" id="modalSave">💾 Сохранить</button>
+<!-- ========== РЕЖИМ ЗАПОЛНЕНИЯ ========== -->
+<div id="tab-fill" class="tab-pane">
+    <div class="card">
+        <h3>✏️ Второе сканирование – заполнение полей документа</h3>
+        <div class="mode-hint">Отсканируйте существующий штрих-код, чтобы заполнить или отредактировать данные документа.</div>
+        <div class="flex">
+            <div class="form-group" style="flex:2;">
+                <label>Штрих-код</label>
+                <input type="text" id="fillBarcode" placeholder="Введите код" />
             </div>
+            <button id="fillScanBtn">📷 Сканировать</button>
+            <button id="fillStopScanBtn" class="danger hidden">⏹ Остановить</button>
+            <button id="fillLoadBtn">📂 Загрузить</button>
+        </div>
+        <div id="fillScannerContainer" class="hidden"></div>
+        <div id="fillResult" class="info-box hidden"></div>
+        <div id="fillFormContainer" class="hidden">
+            <hr />
+            <div class="org-type-display" id="fillOrgTypeDisplay"></div>
+            <div id="fillFields"></div>
+            <!-- История для аренды -->
+            <div id="fillHistoryContainer" class="hidden">
+                <h4>📜 История продлений</h4>
+                <div id="fillHistoryList"></div>
+                <div class="flex" style="margin-top:10px;">
+                    <div class="form-group"><label>Новая стоимость</label><input type="text" id="fillNewCost" placeholder="Сумма" /></div>
+                    <div class="form-group"><label>Новый срок</label><input type="text" id="fillNewPeriod" placeholder="Напр. 1 месяц" /></div>
+                    <button id="fillExtendBtn" class="green">🔄 ПРОДЛИТЬ</button>
+                </div>
+            </div>
+            <button id="fillSaveBtn" class="green">💾 Сохранить изменения</button>
         </div>
     </div>
+</div>
 
-    <script>
-        // ============================================================
-        //  STATE
-        // ============================================================
-        const DB_KEY = 'barcodeDB';
-        let db = {};
-        let mode = 'add';
-        let cameraActive = false;
-        let scanInterval = null;
-        let lastScanned = null;
-        let modalResolve = null;
-        let lastAddedCode = null; // для анимации нового элемента
+<!-- ========== РЕЖИМ ПРОСМОТРА ========== -->
+<div id="tab-view" class="tab-pane">
+    <div class="card">
+        <h3>🔍 Третье сканирование – просмотр информации</h3>
+        <div class="mode-hint">Отсканируйте штрих-код для отображения всех данных документа.</div>
+        <div class="flex">
+            <div class="form-group" style="flex:2;">
+                <label>Штрих-код</label>
+                <input type="text" id="viewBarcode" placeholder="Введите код" />
+            </div>
+            <button id="viewScanBtn">📷 Сканировать</button>
+            <button id="viewStopScanBtn" class="danger hidden">⏹ Остановить</button>
+            <button id="viewFindBtn">🔍 Найти</button>
+        </div>
+        <div id="viewScannerContainer" class="hidden"></div>
+        <div id="viewResult" class="info-box hidden"></div>
+    </div>
+</div>
 
-        // DOM refs
-        const video = document.getElementById('video');
-        const cameraLoading = document.getElementById('cameraLoading');
-        const placeholder = document.getElementById('placeholder');
-        const statusEl = document.getElementById('status');
-        const dbList = document.getElementById('dbList');
-        const countLabel = document.getElementById('countLabel');
-        const dbBadge = document.getElementById('dbBadge');
-        const manualInput = document.getElementById('manualInput');
-        const flashOverlay = document.getElementById('flashOverlay');
+<!-- ========== РЕЖИМ ВСЕ ЗАПИСИ ========== -->
+<div id="tab-list" class="tab-pane">
+    <div class="card">
+        <h3>📋 Все документы (<span id="listCount">0</span>)</h3>
+        <button id="clearAllBtn" class="danger">🗑 Очистить всё</button>
+        <div style="overflow-x:auto; margin-top:10px;">
+            <table>
+                <thead><tr><th>ШК</th><th>Организация</th><th>Тип</th><th>№ документа</th><th>Действия</th></tr></thead>
+                <tbody id="listTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
-        const tabAdd = document.getElementById('tabAdd');
-        const tabInfo = document.getElementById('tabInfo');
-        const tabLookup = document.getElementById('tabLookup');
-        const btnStart = document.getElementById('btnStart');
-        const btnStop = document.getElementById('btnStop');
-        const btnClearAll = document.getElementById('btnClearAll');
-        const btnManual = document.getElementById('btnManual');
+<script>
+// =====================================================================
+// 1. КОНФИГУРАЦИЯ
+// =====================================================================
 
-        const modalOverlay = document.getElementById('modalOverlay');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalSub = document.getElementById('modalSub');
-        const modalCode = document.getElementById('modalCode');
-        const modalTextarea = document.getElementById('modalTextarea');
-        const modalCancel = document.getElementById('modalCancel');
-        const modalSave = document.getElementById('modalSave');
+const ORGS = {
+    '01': 'МВД и территориальные подразделения',
+    '02': 'Верховный суд г. Соль-Илецка',
+    '03': 'Правительство Оренбургской области',
+    '04': 'Единая служба спасения (ЕСС)',
+    '05': 'Воинская часть №205 и военкоматы',
+    '06': 'Орган выдачи общегражданских документов',
+    '07': 'Банк "Стабильность"',
+    '08': 'Арендная компания "Wels Rent"',
+    '09': 'Нотариальные конторы, адвокаты',
+    '10': 'Органы госбезопасности (ФСБ и др.)',
+    '11': 'Прокуратура',
+    '12': 'Органы местного самоуправления',
+    '13': 'Учреждения образования и культуры',
+};
 
-        // ============================================================
-        //  AUDIO (Web Audio beep)
-        // ============================================================
-        let audioCtx = null;
+const DOC_TYPES = {
+    '01': { name: 'Паспорт гражданина РФ', fields: [
+        { label: '№ документа (Формат № 00 00 000000)', name: 'docNumber' },
+        { label: 'Код подразделения (000-000)', name: 'divisionCode' },
+        { label: 'Личный номер', name: 'personalNumber' },
+        { label: 'Дата выдачи', name: 'issueDate' }
+    ]},
+    '02': { name: 'Водительское удостоверение', fields: [
+        { label: '№ документа (00 00 000000)', name: 'docNumber' },
+        { label: 'Дата выдачи и категории ВУ', name: 'issueDateCategories' },
+        { label: 'Срок действия', name: 'expiryDate' }
+    ]},
+    '03': { name: 'ПТС / Свидетельство о регистрации ТС', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Транспортное средство (наименование, тип, модель, госномер, цвет и т.д.)', name: 'vehicleInfo' },
+        { label: 'Срок действия', name: 'expiryDate' }
+    ]},
+    '04': { name: 'Страховой полис ОСАГО', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'ТС (модель, госномер)', name: 'vehicle' },
+        { label: 'Владелец', name: 'owner' },
+        { label: 'Срок действия', name: 'expiryDate' }
+    ]},
+    '05': { name: 'Медицинская справка', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Срок действия', name: 'expiryDate' },
+        { label: '№ акта', name: 'actNumber' },
+        { label: 'Куда допускается', name: 'allowedFor' }
+    ]},
+    '06': { name: 'Лицензия таксиста', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Срок действия', name: 'expiryDate' },
+        { label: 'ФИО', name: 'fullName' }
+    ]},
+    '07': { name: 'Лицензия на оружие', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Срок действия', name: 'expiryDate' },
+        { label: 'ФИО', name: 'fullName' }
+    ]},
+    '08': { name: 'Разрешение Правительства', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Срок действия', name: 'expiryDate' },
+        { label: 'ФИО', name: 'fullName' }
+    ]},
+    '09': { name: 'Ордер на производство обыска', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Срок действия', name: 'expiryDate' },
+        { label: 'Постановление', name: 'resolution' }
+    ]},
+    '10': { name: 'Ордер на заключение под стражу', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Срок действия', name: 'expiryDate' },
+        { label: 'Постановление', name: 'resolution' }
+    ]},
+    '11': { name: 'Постановление суда', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '12': { name: 'Постановление МВД', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '13': { name: 'Приказ', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '14': { name: 'Рапорт', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '15': { name: 'Счёт', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Описание', name: 'description' }
+    ]},
+    '16': { name: 'Договор аренды ТС', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Госномер ТС', name: 'vehiclePlate' },
+        { label: 'Стоимость аренды', name: 'rentCost' },
+        { label: 'Срок аренды', name: 'rentPeriod' }
+    ], hasHistory: true },
+    '17': { name: 'Договор аренды жилого помещения', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Адрес', name: 'address' },
+        { label: 'Стоимость аренды', name: 'rentCost' },
+        { label: 'Срок аренды', name: 'rentPeriod' }
+    ], hasHistory: true },
+    '18': { name: 'Протокол задержания лица', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '19': { name: 'Протокол допроса', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '20': { name: 'Заявление', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '21': { name: 'Ориентировка', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '22': { name: 'Карта вызова СМП', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '23': { name: 'Акт описи и ареста имущества', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '24': { name: 'Ходатайство', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '25': { name: 'Уведомление', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '26': { name: 'Ответ', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '27': { name: 'Справка', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '28': { name: 'Трудовой договор', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Наименование организации', name: 'orgName' }
+    ]},
+    '29': { name: 'Военный билет', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Наименование воинской части', name: 'militaryUnit' },
+        { label: 'ФИО', name: 'fullName' }
+    ]},
+    '30': { name: 'Приказ о приёме на работу', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '31': { name: 'Приказ об увольнении', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '32': { name: 'Письменное объяснение', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Дело', name: 'caseNumber' }
+    ]},
+    '33': { name: 'Заключение экспертизы', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '34': { name: 'Приговор суда', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Название суда', name: 'courtName' },
+        { label: 'Дело', name: 'caseNumber' }
+    ]},
+    '35': { name: 'Исполнительный лист', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Дело', name: 'caseNumber' },
+        { label: '№ решения суда', name: 'courtDecisionNumber' }
+    ]},
+    '36': { name: 'Игровое достижение', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Код достижения', name: 'achievementCode' }
+    ]},
+    '37': { name: 'Лотерейный билет', fields: [
+        { label: '№ билета', name: 'docNumber' }
+    ]},
+    '38': { name: 'Контракт дальнобойщика', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '39': { name: 'Акт приёма-передачи ТС', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '40': { name: 'Акт сверки', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '41': { name: 'Договор аренды оборудования', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Оборудование', name: 'equipment' },
+        { label: 'Стоимость аренды', name: 'rentCost' },
+        { label: 'Срок аренды', name: 'rentPeriod' }
+    ], hasHistory: true },
+    '42': { name: 'Свидетельство о праве собственности на недвижимость', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '43': { name: 'Удостоверение личности', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'ФИО', name: 'fullName' },
+        { label: 'Должность и звание', name: 'positionRank' }
+    ]},
+    '44': { name: 'Ордер на производство выемки', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '45': { name: 'Постановление о назначении адм. наказания', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Статья', name: 'article' },
+        { label: 'Сумма', name: 'amount' }
+    ]},
+    '46': { name: 'Постановление об отказе в возбуждении уголовного дела', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: '№ дела', name: 'caseNumber' }
+    ]},
+    '47': { name: 'Карта вызова пожарной службы', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '48': { name: 'Решение суда о компенсации', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: '№ решения', name: 'decisionNumber' }
+    ]},
+    '49': { name: 'Бланк стажировки', fields: [
+        { label: '№ документа', name: 'docNumber' }
+    ]},
+    '50': { name: 'Свидетельство о сдаче экзамена', fields: [
+        { label: '№ документа', name: 'docNumber' },
+        { label: 'Дата экзамена (ДД.ММ.ГГГГ Игр День ____ (от 0 до 9999999))', name: 'examDate' },
+        { label: 'Категории ВУ', name: 'categories' },
+        { label: 'Срок действия', name: 'expiryDate' }
+    ]}
+};
 
-        function playBeep(type = 'success') {
-            try {
-                if (!audioCtx) {
-                    audioCtx = new(window.AudioContext || window.webkitAudioContext)();
-                }
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.type = 'sine';
-                osc.frequency.value = type === 'success' ? 880 : 440;
-                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
-                osc.start(audioCtx.currentTime);
-                osc.stop(audioCtx.currentTime + 0.12);
-            } catch (e) { /* игнорируем ошибки аудио */ }
-        }
+// Типы, для которых доступна история продлений (hasHistory: true)
+const HISTORY_TYPES = ['16','17','41'];
 
-        // ============================================================
-        //  DB HELPERS
-        // ============================================================
-        function loadDB() {
-            try {
-                const raw = localStorage.getItem(DB_KEY);
-                db = raw ? JSON.parse(raw) : {};
-            } catch {
-                db = {};
-            }
-            renderList();
-        }
+// =====================================================================
+// 2. РАБОТА С ДАННЫМИ
+// =====================================================================
 
-        function saveDB() {
-            localStorage.setItem(DB_KEY, JSON.stringify(db));
-            renderList();
-        }
+const STORAGE_KEY = 'documents_db';
+const COUNTER_KEY = 'doc_counters';
 
-        function getBarcodeInfo(code) {
-            return db[code] || null;
-        }
+function getItems() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : {};
+}
 
-        function setBarcodeInfo(code, desc) {
-            db[code] = desc || '';
-            saveDB();
-        }
+function saveItems(items) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
 
-        function deleteBarcode(code) {
-            delete db[code];
-            saveDB();
-        }
+function getCounters() {
+    const data = localStorage.getItem(COUNTER_KEY);
+    return data ? JSON.parse(data) : {};
+}
 
-        function barcodeExists(code) {
-            return code in db;
-        }
+function saveCounters(counters) {
+    localStorage.setItem(COUNTER_KEY, JSON.stringify(counters));
+}
 
-        function countEntries() {
-            return Object.keys(db).length;
-        }
+// Генерация нового номера для организации и типа
+function generateBarcode(orgCode, typeCode) {
+    const counters = getCounters();
+    const key = orgCode + '_' + typeCode;
+    let last = counters[key] || 0;
+    let next = last + 1;
+    if (next > 999) {
+        alert('Достигнут лимит 999 для данного типа и организации!');
+        return null;
+    }
+    counters[key] = next;
+    saveCounters(counters);
+    const zzz = String(next).padStart(3, '0');
+    return orgCode + typeCode + zzz;
+}
 
-        // ============================================================
-        //  RENDER
-        // ============================================================
-        function renderList() {
-            const keys = Object.keys(db);
-            const count = keys.length;
-            countLabel.textContent = count;
-            dbBadge.textContent = count;
+// Проверка формата и расшифровка
+function parseBarcode(barcode) {
+    if (!/^\d{7}$/.test(barcode)) return null;
+    const orgCode = barcode.substring(0,2);
+    const typeCode = barcode.substring(2,4);
+    const seq = barcode.substring(4,7);
+    if (!ORGS[orgCode]) return null;
+    if (!DOC_TYPES[typeCode]) return null;
+    return { orgCode, typeCode, seq, orgName: ORGS[orgCode], typeName: DOC_TYPES[typeCode].name };
+}
 
-            if (count === 0) {
-                dbList.innerHTML = `<div class="empty">📭 Нет записей. Добавьте первый штрихкод!</div>`;
-                return;
-            }
+// Получить запись по коду
+function getItem(barcode) {
+    const items = getItems();
+    return items[barcode] || null;
+}
 
-            let html = '';
-            keys.sort((a, b) => a.localeCompare(b));
-            for (const code of keys) {
-                const desc = db[code] || '';
-                const descDisplay = desc || '<span class="empty-desc">(нет описания)</span>';
-                const isNew = (code === lastAddedCode);
-                html += `
-                    <div class="db-item ${isNew ? 'new-item' : ''}" data-code="${escapeHtml(code)}">
-                        <span class="code">${escapeHtml(code)}</span>
-                        <span class="desc">${descDisplay}</span>
-                        <div class="actions">
-                            <button class="edit" data-code="${escapeHtml(code)}" title="Редактировать">✏️</button>
-                            <button class="del" data-code="${escapeHtml(code)}" title="Удалить">🗑</button>
-                        </div>
-                    </div>
-                `;
-            }
-            dbList.innerHTML = html;
+// Сохранить запись
+function saveItem(barcode, data) {
+    const items = getItems();
+    items[barcode] = data;
+    saveItems(items);
+}
 
-            // Если был добавлен новый элемент, через секунду убираем класс, чтобы анимация не повторялась
-            if (lastAddedCode) {
-                setTimeout(() => {
-                    const items = dbList.querySelectorAll('.db-item.new-item');
-                    items.forEach(el => el.classList.remove('new-item'));
-                }, 400);
-                // Сбрасываем, чтобы при следующем рендере не было ложного срабатывания
-                // но оставляем до следующего добавления
-            }
+// Удалить запись
+function deleteItem(barcode) {
+    const items = getItems();
+    delete items[barcode];
+    saveItems(items);
+}
 
-            // event listeners
-            dbList.querySelectorAll('.edit').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const code = btn.dataset.code;
-                    openEditModal(code);
-                });
+// Очистить всё
+function clearAll() {
+    if (!confirm('Удалить все записи?')) return;
+    saveItems({});
+    saveCounters({});
+    renderList();
+}
+
+// =====================================================================
+// 3. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// =====================================================================
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text).replace(/[&<>"]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        if (m === '"') return '&quot;';
+        return m;
+    });
+}
+
+function getNow() {
+    return new Date().toISOString().slice(0,10); // YYYY-MM-DD
+}
+
+// =====================================================================
+// 4. РЕНДЕР СПИСКА ВСЕХ ЗАПИСЕЙ
+// =====================================================================
+
+function renderList() {
+    const items = getItems();
+    const keys = Object.keys(items);
+    document.getElementById('listCount').textContent = keys.length;
+    const tbody = document.getElementById('listTableBody');
+    if (keys.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Нет документов</td></tr>';
+        return;
+    }
+    let html = '';
+    keys.forEach(barcode => {
+        const item = items[barcode];
+        const orgName = ORGS[item.orgCode] || item.orgCode;
+        const typeName = DOC_TYPES[item.typeCode]?.name || item.typeCode;
+        const docNum = item.fields?.docNumber || '';
+        html += `<tr>
+            <td><svg id="list-barcode-${barcode}" class="barcode-svg"></svg><br><small>${barcode}</small></td>
+            <td>${escapeHtml(orgName)}</td>
+            <td>${escapeHtml(typeName)}</td>
+            <td>${escapeHtml(docNum)}</td>
+            <td>
+                <button class="btn-small outline" onclick="viewItem('${barcode}')">👁️</button>
+                <button class="btn-small danger" onclick="deleteItem('${barcode}'); renderList();">🗑</button>
+            </td>
+        </tr>`;
+    });
+    tbody.innerHTML = html;
+    // Генерация штрих-кодов
+    keys.forEach(barcode => {
+        try {
+            JsBarcode(`#list-barcode-${barcode}`, barcode, {
+                format: "CODE128",
+                width: 1.5,
+                height: 30,
+                displayValue: false
             });
-            dbList.querySelectorAll('.del').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const code = btn.dataset.code;
-                    if (confirm(`Удалить штрихкод «${code}»?`)) {
-                        deleteBarcode(code);
-                        setStatus(`🗑 Удалён: ${code}`, 'warning');
-                        playBeep('error');
-                    }
-                });
-            });
-        }
+        } catch(e) {}
+    });
+}
 
-        function escapeHtml(str) {
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
-        }
+// Глобальный вызов для просмотра из списка
+window.viewItem = function(barcode) {
+    // Переключим вкладку на просмотр и подставим код
+    switchTab('view');
+    document.getElementById('viewBarcode').value = barcode;
+    document.getElementById('viewFindBtn').click();
+};
 
-        // ============================================================
-        //  STATUS
-        // ============================================================
-        function setStatus(msg, type = 'info', highlight = null) {
-            let html = msg;
-            if (highlight) {
-                html = msg.replace(highlight, `<span class="highlight">${highlight}</span>`);
+// =====================================================================
+// 5. РАБОТА С РЕЖИМАМИ (ВКЛАДКИ)
+// =====================================================================
+
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
+    document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
+    // Остановить все сканеры
+    stopAllScanners();
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        switchTab(this.dataset.tab);
+    });
+});
+
+// =====================================================================
+// 6. СКАНЕРЫ (общий код)
+// =====================================================================
+
+let activeScanner = null;
+let scannerContainerId = null;
+let scanCallback = null;
+
+function startScanner(containerId, onSuccess, onError) {
+    if (activeScanner) {
+        stopScanner();
+    }
+    const container = document.getElementById(containerId);
+    container.classList.remove('hidden');
+    container.innerHTML = ''; // очищаем
+    activeScanner = new Html5Qrcode(containerId);
+    scannerContainerId = containerId;
+    const config = { fps: 15, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+    activeScanner.start(
+        { facingMode: "environment" },
+        config,
+        function(decodedText) {
+            // успех
+            if (onSuccess) onSuccess(decodedText);
+            // не останавливаем автоматически, даем пользователю остановить
+        },
+        function(err) {
+            if (onError) onError(err);
+        }
+    ).catch(err => {
+        alert('Не удалось запустить камеру. Проверьте HTTPS/localhost и разрешения.');
+        stopScanner();
+    });
+}
+
+function stopScanner() {
+    if (activeScanner) {
+        activeScanner.stop().then(() => {
+            activeScanner.clear();
+            activeScanner = null;
+            if (scannerContainerId) {
+                document.getElementById(scannerContainerId).classList.add('hidden');
+                scannerContainerId = null;
             }
-            statusEl.innerHTML = html;
-            statusEl.className = 'status ' + type;
-            // анимация статуса
-            statusEl.classList.remove('pop');
-            // форсируем reflow
-            void statusEl.offsetWidth;
-            statusEl.classList.add('pop');
-        }
+        }).catch(() => {});
+    } else {
+        // Если нет активного, просто скрываем все контейнеры
+        document.querySelectorAll('.scanner-container').forEach(el => el.classList.add('hidden'));
+    }
+    // Также скрываем все кнопки остановки
+    document.querySelectorAll('.stop-scan-btn').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.scan-btn').forEach(el => el.classList.remove('hidden'));
+}
 
-        // ============================================================
-        //  FLASH
-        // ============================================================
-        function triggerFlash(type = 'success') {
-            flashOverlay.classList.remove('flash', 'flash-end');
-            // форсируем reflow
-            void flashOverlay.offsetWidth;
-            flashOverlay.classList.add('flash');
-            // через 100ms начинаем исчезновение
-            setTimeout(() => {
-                flashOverlay.classList.remove('flash');
-                flashOverlay.classList.add('flash-end');
-                setTimeout(() => {
-                    flashOverlay.classList.remove('flash-end');
-                }, 400);
-            }, 100);
-            // звук
-            playBeep(type === 'success' ? 'success' : 'error');
-        }
+function stopAllScanners() {
+    stopScanner();
+}
 
-        // ============================================================
-        //  CAMERA / BARCODE DETECTION
-        // ============================================================
-        async function startCamera() {
-            if (cameraActive) return;
-            try {
-                cameraLoading.style.display = 'flex';
-                placeholder.style.display = 'none';
-                video.style.display = 'none';
+// =====================================================================
+// 7. РЕЖИМ ДОБАВЛЕНИЯ
+// =====================================================================
 
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
-                });
-                video.srcObject = stream;
-                await video.play();
+const addBarcodeInput = document.getElementById('addBarcode');
+const addResult = document.getElementById('addResult');
+const addFormContainer = document.getElementById('addFormContainer');
+const addOrgTypeDisplay = document.getElementById('addOrgTypeDisplay');
 
-                if (!('BarcodeDetector' in window)) {
-                    setStatus('⚠️ Ваш браузер не поддерживает сканирование камерой. Используйте ручной ввод.', 'error');
-                    cameraLoading.style.display = 'none';
-                    placeholder.style.display = 'flex';
-                    video.style.display = 'none';
-                    return;
-                }
+let addCurrentBarcode = null; // код, который проверяем
 
-                cameraLoading.style.display = 'none';
-                video.style.display = 'block';
-                cameraActive = true;
-                btnStart.disabled = true;
-                btnStop.disabled = false;
-                setStatus('📷 Камера запущена. Наведите на штрихкод...', 'info');
+document.getElementById('addScanBtn').addEventListener('click', function() {
+    startScanner('addScannerContainer', function(decoded) {
+        addBarcodeInput.value = decoded;
+        document.getElementById('addCheckBtn').click();
+    });
+    this.classList.add('hidden');
+    document.getElementById('addStopScanBtn').classList.remove('hidden');
+});
+document.getElementById('addStopScanBtn').addEventListener('click', function() {
+    stopScanner();
+    document.getElementById('addScanBtn').classList.remove('hidden');
+    this.classList.add('hidden');
+});
 
-                const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e',
-                        'itf', 'codabar'
-                    ] });
+document.getElementById('addCheckBtn').addEventListener('click', function() {
+    const barcode = addBarcodeInput.value.trim();
+    if (!barcode) { alert('Введите штрих-код'); return; }
+    const parsed = parseBarcode(barcode);
+    if (!parsed) {
+        addResult.innerHTML = '<span style="color:red;">❌ Неверный формат. Ожидается 7 цифр (XXYYZZZ).</span>';
+        addResult.classList.remove('hidden');
+        addFormContainer.classList.add('hidden');
+        return;
+    }
+    // Проверяем, существует ли уже
+    const existing = getItem(barcode);
+    if (existing) {
+        addResult.innerHTML = `<span style="color:orange;">⚠️ Документ с кодом ${barcode} уже существует. Перейдите в режим "Заполнить" для редактирования.</span>`;
+        addResult.classList.remove('hidden');
+        addFormContainer.classList.add('hidden');
+        return;
+    }
+    // Всё ок, показываем информацию и форму добавления
+    addCurrentBarcode = barcode;
+    addResult.innerHTML = `<span style="color:green;">✅ Новый документ. Организация: <strong>${parsed.orgName}</strong>, Тип: <strong>${parsed.typeName}</strong>, Порядковый номер: ${parsed.seq}</span>`;
+    addResult.classList.remove('hidden');
+    addOrgTypeDisplay.innerHTML = `<strong>Организация:</strong> ${parsed.orgName} (код ${parsed.orgCode}) &nbsp;|&nbsp; <strong>Тип:</strong> ${parsed.typeName} (код ${parsed.typeCode})`;
+    addFormContainer.classList.remove('hidden');
+    // Сохраним в текущую запись (пока без полей)
+    // При нажатии "Сохранить" создадим запись с пустыми полями
+});
 
-                if (scanInterval) clearInterval(scanInterval);
-                scanInterval = setInterval(async () => {
-                    if (!cameraActive || video.readyState < 2) return;
-                    try {
-                        const barcodes = await detector.detect(video);
-                        if (barcodes.length > 0) {
-                            const code = barcodes[0].rawValue;
-                            if (code !== lastScanned) {
-                                lastScanned = code;
-                                handleBarcode(code);
-                            }
-                        }
-                    } catch (err) { /* игнор */ }
-                }, 350);
+document.getElementById('addSaveBtn').addEventListener('click', function() {
+    if (!addCurrentBarcode) return;
+    const parsed = parseBarcode(addCurrentBarcode);
+    if (!parsed) return;
+    // Создаем запись с пустыми полями
+    const newRecord = {
+        orgCode: parsed.orgCode,
+        typeCode: parsed.typeCode,
+        fields: {}, // будут заполнены позже
+        history: [], // если есть
+        createdAt: new Date().toISOString()
+    };
+    saveItem(addCurrentBarcode, newRecord);
+    alert(`Документ ${addCurrentBarcode} успешно добавлен! Теперь заполните данные в режиме "Заполнить".`);
+    // Очищаем
+    addBarcodeInput.value = '';
+    addResult.classList.add('hidden');
+    addFormContainer.classList.add('hidden');
+    addCurrentBarcode = null;
+    renderList();
+});
 
-                // Сброс lastScanned через время
-                let resetTimer = null;
-                const origHandle = handleBarcode;
-                handleBarcode = function(code) {
-                    if (resetTimer) clearTimeout(resetTimer);
-                    origHandle(code);
-                    resetTimer = setTimeout(() => {
-                        lastScanned = null;
-                    }, 2000);
-                };
+// =====================================================================
+// 8. РЕЖИМ ЗАПОЛНЕНИЯ
+// =====================================================================
 
-            } catch (err) {
-                console.error('Camera error:', err);
-                cameraLoading.style.display = 'none';
-                placeholder.style.display = 'flex';
-                video.style.display = 'none';
-                setStatus('❌ Не удалось открыть камеру: ' + err.message, 'error');
-                btnStart.disabled = false;
-                btnStop.disabled = true;
-            }
-        }
+const fillBarcodeInput = document.getElementById('fillBarcode');
+const fillResult = document.getElementById('fillResult');
+const fillFormContainer = document.getElementById('fillFormContainer');
+const fillOrgTypeDisplay = document.getElementById('fillOrgTypeDisplay');
+const fillFields = document.getElementById('fillFields');
+const fillHistoryContainer = document.getElementById('fillHistoryContainer');
+const fillHistoryList = document.getElementById('fillHistoryList');
+let fillCurrentBarcode = null;
+let fillCurrentData = null;
 
-        function stopCamera() {
-            cameraActive = false;
-            if (scanInterval) {
-                clearInterval(scanInterval);
-                scanInterval = null;
-            }
-            if (video.srcObject) {
-                video.srcObject.getTracks().forEach(t => t.stop());
-                video.srcObject = null;
-            }
-            video.style.display = 'none';
-            placeholder.style.display = 'flex';
-            cameraLoading.style.display = 'none';
-            btnStart.disabled = false;
-            btnStop.disabled = true;
-            lastScanned = null;
-            setStatus('⏹ Камера остановлена', 'info');
-        }
+document.getElementById('fillScanBtn').addEventListener('click', function() {
+    startScanner('fillScannerContainer', function(decoded) {
+        fillBarcodeInput.value = decoded;
+        document.getElementById('fillLoadBtn').click();
+    });
+    this.classList.add('hidden');
+    document.getElementById('fillStopScanBtn').classList.remove('hidden');
+});
+document.getElementById('fillStopScanBtn').addEventListener('click', function() {
+    stopScanner();
+    document.getElementById('fillScanBtn').classList.remove('hidden');
+    this.classList.add('hidden');
+});
 
-        // ============================================================
-        //  HANDLE BARCODE
-        // ============================================================
-        function handleBarcode(code) {
-            if (!code || code.length < 3) return;
+document.getElementById('fillLoadBtn').addEventListener('click', function() {
+    const barcode = fillBarcodeInput.value.trim();
+    if (!barcode) { alert('Введите штрих-код'); return; }
+    const parsed = parseBarcode(barcode);
+    if (!parsed) {
+        fillResult.innerHTML = '<span style="color:red;">❌ Неверный формат.</span>';
+        fillResult.classList.remove('hidden');
+        fillFormContainer.classList.add('hidden');
+        return;
+    }
+    const item = getItem(barcode);
+    if (!item) {
+        fillResult.innerHTML = `<span style="color:orange;">⚠️ Документ ${barcode} не найден. Сначала добавьте его в режиме "Добавить".</span>`;
+        fillResult.classList.remove('hidden');
+        fillFormContainer.classList.add('hidden');
+        return;
+    }
+    // Загружаем данные
+    fillCurrentBarcode = barcode;
+    fillCurrentData = item;
+    fillResult.innerHTML = `<span style="color:green;">✅ Документ загружен. Организация: <strong>${ORGS[item.orgCode] || item.orgCode}</strong>, Тип: <strong>${DOC_TYPES[item.typeCode]?.name || item.typeCode}</strong></span>`;
+    fillResult.classList.remove('hidden');
+    fillOrgTypeDisplay.innerHTML = `<strong>Организация:</strong> ${ORGS[item.orgCode] || item.orgCode} (код ${item.orgCode}) &nbsp;|&nbsp; <strong>Тип:</strong> ${DOC_TYPES[item.typeCode]?.name || item.typeCode} (код ${item.typeCode})`;
+    // Генерируем форму полей
+    renderFillForm(item.typeCode, item.fields || {});
+    // Показываем историю, если есть
+    const typeInfo = DOC_TYPES[item.typeCode];
+    if (typeInfo && typeInfo.hasHistory) {
+        fillHistoryContainer.classList.remove('hidden');
+        renderHistory(item.history || []);
+    } else {
+        fillHistoryContainer.classList.add('hidden');
+    }
+    fillFormContainer.classList.remove('hidden');
+});
 
-            const exists = barcodeExists(code);
-            const info = getBarcodeInfo(code);
+function renderFillForm(typeCode, currentFields) {
+    const typeInfo = DOC_TYPES[typeCode];
+    if (!typeInfo) { fillFields.innerHTML = '<p>Неизвестный тип документа</p>'; return; }
+    let html = '<div class="doc-fields">';
+    typeInfo.fields.forEach(field => {
+        const val = currentFields[field.name] || '';
+        html += `<div class="field-row">
+            <label>${escapeHtml(field.label)}</label>
+            <input type="text" id="fill_field_${field.name}" value="${escapeHtml(val)}" />
+        </div>`;
+    });
+    html += '</div>';
+    fillFields.innerHTML = html;
+}
 
-            switch (mode) {
-                case 'add':
-                    if (exists) {
-                        setStatus(`⚠️ ШК <span class="highlight">${code}</span> уже есть в базе`, 'warning', code);
-                        triggerFlash('error');
-                    } else {
-                        setBarcodeInfo(code, '');
-                        lastAddedCode = code; // для анимации
-                        setStatus(`✅ ШК <span class="highlight">${code}</span> добавлен!`, 'success', code);
-                        triggerFlash('success');
-                        // обновить бейдж с анимацией
-                        dbBadge.classList.remove('pop');
-                        void dbBadge.offsetWidth;
-                        dbBadge.classList.add('pop');
-                    }
-                    break;
+function renderHistory(history) {
+    if (!history || history.length === 0) {
+        fillHistoryList.innerHTML = '<p>Нет продлений</p>';
+        return;
+    }
+    let html = '';
+    history.forEach((entry, index) => {
+        html += `<div class="history-item">
+            <strong>#${index+1}</strong> Дата: ${escapeHtml(entry.date || '')}, Стоимость: ${escapeHtml(entry.cost || '')}, Срок: ${escapeHtml(entry.period || '')}
+        </div>`;
+    });
+    fillHistoryList.innerHTML = html;
+}
 
-                case 'info':
-                    if (exists) {
-                        openEditModal(code, () => {
-                            setStatus(`✏️ Описание для <span class="highlight">${code}</span> обновлено`, 'success',
-                            code);
-                            triggerFlash('success');
-                        });
-                        // Здесь мы не триггерим flash сразу, так как откроется модалка
-                        // но при сохранении будет flash
-                    } else {
-                        setStatus(`❌ ШК <span class="highlight">${code}</span> не найден в базе`, 'error', code);
-                        triggerFlash('error');
-                    }
-                    break;
+// Продление
+document.getElementById('fillExtendBtn').addEventListener('click', function() {
+    if (!fillCurrentBarcode || !fillCurrentData) return;
+    const cost = document.getElementById('fillNewCost').value.trim();
+    const period = document.getElementById('fillNewPeriod').value.trim();
+    if (!cost || !period) {
+        alert('Введите стоимость и срок для продления');
+        return;
+    }
+    const history = fillCurrentData.history || [];
+    history.push({
+        date: getNow(),
+        cost: cost,
+        period: period
+    });
+    fillCurrentData.history = history;
+    saveItem(fillCurrentBarcode, fillCurrentData);
+    renderHistory(history);
+    document.getElementById('fillNewCost').value = '';
+    document.getElementById('fillNewPeriod').value = '';
+    alert('Продление добавлено!');
+    renderList();
+});
 
-                case 'lookup':
-                    if (exists) {
-                        const desc = info || '(нет описания)';
-                        setStatus(`🔍 <span class="highlight">${code}</span> → ${desc}`, 'success', code);
-                        triggerFlash('success');
-                    } else {
-                        setStatus(`❌ ШК <span class="highlight">${code}</span> не найден`, 'error', code);
-                        triggerFlash('error');
-                    }
-                    break;
+// Сохранение изменений полей
+document.getElementById('fillSaveBtn').addEventListener('click', function() {
+    if (!fillCurrentBarcode || !fillCurrentData) return;
+    const typeCode = fillCurrentData.typeCode;
+    const typeInfo = DOC_TYPES[typeCode];
+    if (!typeInfo) { alert('Неизвестный тип'); return; }
+    const fields = {};
+    typeInfo.fields.forEach(field => {
+        const el = document.getElementById('fill_field_' + field.name);
+        if (el) fields[field.name] = el.value.trim();
+    });
+    fillCurrentData.fields = fields;
+    saveItem(fillCurrentBarcode, fillCurrentData);
+    alert('Данные сохранены!');
+    renderList();
+});
 
-                default:
-                    break;
-            }
-        }
+// =====================================================================
+// 9. РЕЖИМ ПРОСМОТРА
+// =====================================================================
 
-        // ============================================================
-        //  MODAL
-        // ============================================================
-        function openEditModal(code, onSaveCallback) {
-            const info = getBarcodeInfo(code) || '';
-            modalCode.textContent = code;
-            modalTextarea.value = info;
-            modalTitle.textContent = '✏️ Редактировать описание';
-            modalSub.innerHTML = `ШК: <span class="code-display">${code}</span>`;
-            modalOverlay.classList.add('open');
-            modalTextarea.focus();
-            modalTextarea.select();
+const viewBarcodeInput = document.getElementById('viewBarcode');
+const viewResult = document.getElementById('viewResult');
 
-            const saveHandler = () => {
-                const newDesc = modalTextarea.value.trim();
-                setBarcodeInfo(code, newDesc);
-                modalOverlay.classList.remove('open');
-                if (onSaveCallback) onSaveCallback();
-                renderList();
-                // обновим статус (уже в колбэке)
-                // добавим flash
-                triggerFlash('success');
-            };
+document.getElementById('viewScanBtn').addEventListener('click', function() {
+    startScanner('viewScannerContainer', function(decoded) {
+        viewBarcodeInput.value = decoded;
+        document.getElementById('viewFindBtn').click();
+    });
+    this.classList.add('hidden');
+    document.getElementById('viewStopScanBtn').classList.remove('hidden');
+});
+document.getElementById('viewStopScanBtn').addEventListener('click', function() {
+    stopScanner();
+    document.getElementById('viewScanBtn').classList.remove('hidden');
+    this.classList.add('hidden');
+});
 
-            modalSave.onclick = saveHandler;
-            modalCancel.onclick = () => {
-                modalOverlay.classList.remove('open');
-            };
-
-            modalTextarea.onkeydown = (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    saveHandler();
-                }
-            };
-        }
-
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) {
-                modalOverlay.classList.remove('open');
-            }
+document.getElementById('viewFindBtn').addEventListener('click', function() {
+    const barcode = viewBarcodeInput.value.trim();
+    if (!barcode) { alert('Введите штрих-код'); return; }
+    const parsed = parseBarcode(barcode);
+    if (!parsed) {
+        viewResult.innerHTML = '<span style="color:red;">❌ Неверный формат.</span>';
+        viewResult.classList.remove('hidden');
+        return;
+    }
+    const item = getItem(barcode);
+    if (!item) {
+        viewResult.innerHTML = `<span style="color:orange;">⚠️ Документ ${barcode} не найден.</span>`;
+        viewResult.classList.remove('hidden');
+        return;
+    }
+    // Формируем вывод
+    let html = `<h4>📄 Документ ${barcode}</h4>`;
+    html += `<p><strong>Организация:</strong> ${ORGS[item.orgCode] || item.orgCode} (код ${item.orgCode})<br>
+             <strong>Тип:</strong> ${DOC_TYPES[item.typeCode]?.name || item.typeCode} (код ${item.typeCode})</p>`;
+    const typeInfo = DOC_TYPES[item.typeCode];
+    if (typeInfo && typeInfo.fields.length > 0) {
+        html += '<h5>Поля документа:</h5><ul>';
+        typeInfo.fields.forEach(field => {
+            const val = item.fields?.[field.name] || '';
+            html += `<li><strong>${escapeHtml(field.label)}:</strong> ${escapeHtml(val)}</li>`;
         });
+        html += '</ul>';
+    }
+    // История
+    if (typeInfo && typeInfo.hasHistory && item.history && item.history.length > 0) {
+        html += '<h5>📜 История продлений:</h5><ul>';
+        item.history.forEach((entry, idx) => {
+            html += `<li>#${idx+1} Дата: ${escapeHtml(entry.date)}, Стоимость: ${escapeHtml(entry.cost)}, Срок: ${escapeHtml(entry.period)}</li>`;
+        });
+        html += '</ul>';
+    }
+    html += `<p><small>Создан: ${new Date(item.createdAt).toLocaleString()}</small></p>`;
+    viewResult.innerHTML = html;
+    viewResult.classList.remove('hidden');
+});
 
-        // ============================================================
-        //  MANUAL INPUT
-        // ============================================================
-        function handleManualInput() {
-            const code = manualInput.value.trim();
-            if (!code) {
-                setStatus('⚠️ Введите штрихкод', 'warning');
-                return;
-            }
-            manualInput.value = '';
-            lastScanned = code;
-            handleBarcode(code);
-            setTimeout(() => { lastScanned = null; }, 2000);
-        }
+// =====================================================================
+// 10. ИНИЦИАЛИЗАЦИЯ
+// =====================================================================
 
-        // ============================================================
-        //  TAB SWITCHING
-        // ============================================================
-        function setMode(newMode) {
-            mode = newMode;
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.toggle('active', el.dataset.mode === newMode);
-            });
-            const labels = {
-                add: '➕ Добавление',
-                info: '✏️ Добавление описания',
-                lookup: '🔍 Поиск'
-            };
-            setStatus(`📌 Режим: ${labels[newMode]}. Наведите камеру на ШК.`, 'info');
-            lastScanned = null;
-        }
+document.addEventListener('DOMContentLoaded', function() {
+    renderList();
 
-        // ============================================================
-        //  INIT
-        // ============================================================
-        function init() {
-            loadDB();
+    // Очистка всех
+    document.getElementById('clearAllBtn').addEventListener('click', clearAll);
 
-            setMode('add');
+    // Вкладка по умолчанию
+    switchTab('add');
 
-            tabAdd.addEventListener('click', () => setMode('add'));
-            tabInfo.addEventListener('click', () => setMode('info'));
-            tabLookup.addEventListener('click', () => setMode('lookup'));
+    // Остановка сканеров при переключении вкладок (уже в switchTab)
+    // Дополнительно: при клике на любую вкладку, если сканер работает, остановить
+    // уже реализовано в switchTab через stopAllScanners
+});
 
-            btnStart.addEventListener('click', startCamera);
-            btnStop.addEventListener('click', stopCamera);
+// =====================================================================
+// 11. ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ HTML
+// =====================================================================
 
-            btnManual.addEventListener('click', handleManualInput);
-            manualInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') handleManualInput();
-            });
+// Для кнопки удаления в списке
+window.deleteItem = function(barcode) {
+    if (confirm(`Удалить документ ${barcode}?`)) {
+        deleteItem(barcode);
+        renderList();
+    }
+};
 
-            btnClearAll.addEventListener('click', () => {
-                if (countEntries() === 0) {
-                    setStatus('📭 База уже пуста', 'info');
-                    return;
-                }
-                if (confirm('🗑 Удалить ВСЕ записи из базы?')) {
-                    db = {};
-                    saveDB();
-                    setStatus('🗑 База очищена', 'warning');
-                    playBeep('error');
-                }
-            });
-
-            placeholder.style.display = 'flex';
-            cameraLoading.style.display = 'none';
-
-            // Автозапуск камеры
-            startCamera();
-
-            // Обновление счетчика
-            setInterval(() => {
-                const c = countEntries();
-                if (parseInt(countLabel.textContent) !== c) {
-                    renderList();
-                }
-            }, 3000);
-        }
-
-        // Переопределяем handleBarcode для возможности замены
-        let handleBarcodeFn = handleBarcode;
-
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
-
+</script>
 </body>
 </html>
